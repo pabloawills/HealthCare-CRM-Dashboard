@@ -327,7 +327,7 @@ def linear_regression_forecast(series, horizon=6):
     slope = 0.0 if den == 0 else sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, ys)) / den
     intercept = y_mean - slope * x_mean
     preds = [intercept + slope * x for x in xs]
-    future = [max(0.0, intercept + slope * (len(series) + i)) for i in range(1, horizon + 1)]
+    future = [max(0.0, intercept + slope * x) for x in range(len(series), len(series) + horizon)]
     return slope, intercept, preds, future
 
 
