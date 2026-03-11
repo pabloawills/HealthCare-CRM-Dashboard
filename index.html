@@ -18,7 +18,7 @@
         </p>
       </div>
       <div class="hero-badge" aria-label="Current quarter status">
-        <span>Q2 Goal Progress</span>
+        <span>Current Goal Progress</span>
         <strong id="goalProgress">Retention +6.4%</strong>
       </div>
     </header>
@@ -26,15 +26,14 @@
     <main id="main" class="dashboard" aria-live="polite">
       <section class="controls" aria-label="Dashboard controls">
         <h2>Story controls</h2>
+        <div class="timeframe-row" role="group" aria-label="Select timeframe">
+          <button class="time-btn active" data-timeframe="daily">Daily</button>
+          <button class="time-btn" data-timeframe="weekly">Weekly</button>
+          <button class="time-btn" data-timeframe="monthly">Monthly</button>
+          <button class="time-btn" data-timeframe="quarterly">Quarterly</button>
+          <button class="time-btn" data-timeframe="annually">Annually</button>
+        </div>
         <div class="control-grid">
-          <label>
-            Timeframe
-            <select id="timeframe" aria-label="Select timeframe">
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-            </select>
-          </label>
-
           <label>
             Team focus
             <select id="team" aria-label="Select care team">
@@ -44,25 +43,69 @@
               <option value="support">Patient Support</option>
             </select>
           </label>
+          <label>
+            Graphic style
+            <select id="chartMode" aria-label="Select chart mode">
+              <option value="bar">Bar chart</option>
+              <option value="line">Line chart</option>
+            </select>
+          </label>
         </div>
       </section>
 
-      <section aria-label="KPI summary" class="kpi-grid" id="kpiGrid"></section>
+      <section class="tabs-panel" aria-label="Workspace tabs">
+        <div class="tabs" role="tablist" aria-label="Dashboard workspaces">
+          <button class="tab-btn active" role="tab" id="tab-overview" data-tab="overview" aria-selected="true">Overview</button>
+          <button class="tab-btn" role="tab" id="tab-ai-lab" data-tab="ai-lab" aria-selected="false">AI Data Lab</button>
+          <button class="tab-btn" role="tab" id="tab-recommendations" data-tab="recommendations" aria-selected="false">Recommendations</button>
+        </div>
 
-      <section class="journey-panel" aria-label="Patient journey pipeline">
-        <h2>Patient journey pipeline</h2>
-        <div id="journey" class="journey-grid"></div>
-      </section>
+        <div class="tab-content active" id="overview" role="tabpanel" aria-labelledby="tab-overview">
+          <section aria-label="KPI summary" class="kpi-grid" id="kpiGrid"></section>
 
-      <section class="story-panel" aria-label="Narrative insights">
-        <h2 id="storyTitle">Your KPI narrative</h2>
-        <p id="storyText"></p>
-        <ul id="actions" class="action-list"></ul>
-      </section>
+          <section class="journey-panel" aria-label="Patient journey pipeline">
+            <h2>Patient journey pipeline</h2>
+            <div id="journey" class="journey-grid"></div>
+          </section>
 
-      <section class="trend-panel" aria-label="Trend chart">
-        <h2>Engagement trend</h2>
-        <div id="chart" class="chart" role="img" aria-label="Engagement bar chart"></div>
+          <section class="trend-panel" aria-label="Trend chart">
+            <div class="trend-header">
+              <h2>Engagement trend</h2>
+              <p id="chartHint">Hover or focus bars/points for details.</p>
+            </div>
+            <div id="chart" class="chart" role="img" aria-label="Engagement trend chart"></div>
+            <p id="chartDetail" class="chart-detail">Select a point to inspect value.</p>
+          </section>
+        </div>
+
+        <div class="tab-content" id="ai-lab" role="tabpanel" aria-labelledby="tab-ai-lab">
+          <section class="story-panel" aria-label="AI cleaning and analysis">
+            <h2>Automated AI cleaning & analysis</h2>
+            <p id="aiSummary"></p>
+            <div class="ai-grid">
+              <article>
+                <h3>Raw incoming data</h3>
+                <pre id="rawData" class="data-block"></pre>
+              </article>
+              <article>
+                <h3>Cleaned output</h3>
+                <pre id="cleanData" class="data-block"></pre>
+              </article>
+              <article>
+                <h3>AI highlights</h3>
+                <ul id="aiHighlights" class="action-list"></ul>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <div class="tab-content" id="recommendations" role="tabpanel" aria-labelledby="tab-recommendations">
+          <section class="story-panel" aria-label="Narrative insights">
+            <h2 id="storyTitle">Your KPI narrative</h2>
+            <p id="storyText"></p>
+            <ul id="actions" class="action-list"></ul>
+          </section>
+        </div>
       </section>
     </main>
 
