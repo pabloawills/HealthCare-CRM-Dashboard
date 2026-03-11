@@ -284,6 +284,3 @@ function render() {
     chartEl.appendChild(wrap);
   });
 }
-
-[timeframeEl, teamEl].forEach((el) => el.addEventListener("change", render));
-render();
