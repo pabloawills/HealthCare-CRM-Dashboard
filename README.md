@@ -19,10 +19,7 @@ A lightweight, user-friendly healthcare CRM dashboard built from scratch to tell
 - Forecasting admissions and billing
 - A small AI strategy assistant for CRM recommendations
 
-## Run dashboard locally
+Visit here:
 
-Because this is a static app, you can open `index.html` directly, or run a tiny local server:
-
-```bash
-python3 -m http.server 4173
+https://pabloawills.github.io/HealthCare-CRM-Dashboard/
 
