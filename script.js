@@ -207,8 +207,17 @@ function formatTeamName(team) {
     .join(" ");
 }
 
-function isNegativeTrendPositive(kpiLabel) {
-  return kpiLabel.toLowerCase().includes("no-show rate");
+function getDesiredTrendDirection(kpiLabel) {
+  const labelsWhereDecreaseIsGood = new Set([
+    "no-show rate",
+    "readmission risk",
+    "open support tickets",
+    "avg. resolution time"
+  ]);
+
+  return labelsWhereDecreaseIsGood.has(kpiLabel.toLowerCase())
+    ? "down"
+    : "up";
 }
 
 function render() {
@@ -223,9 +232,9 @@ function render() {
     const card = document.createElement("article");
     card.className = "kpi-card";
 
-    const isPositive = isNegativeTrendPositive(kpi.label)
-      ? kpi.delta <= 0
-      : kpi.delta >= 0;
+    const desiredTrendDirection = getDesiredTrendDirection(kpi.label);
+    const isPositive =
+      desiredTrendDirection === "down" ? kpi.delta <= 0 : kpi.delta >= 0;
 
     card.innerHTML = `
       <h3>${kpi.label}</h3>
@@ -275,6 +284,3 @@ function render() {
     chartEl.appendChild(wrap);
   });
 }
-
-[timeframeEl, teamEl].forEach((el) => el.addEventListener("change", render));
-render();
