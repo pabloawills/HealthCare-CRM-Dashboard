@@ -217,12 +217,13 @@ const engagementFallback = {
 };
 
 let engagementData = engagementFallback;
+
 const timeframeEl = document.getElementById("timeframe");
 const teamEl = document.getElementById("team");
 const kpiGrid = document.getElementById("kpiGrid");
 const storyTitle = document.getElementById("storyTitle");
 const storyText = document.getElementById("storyText");
-const chartEl = document.getElementById("chart");
+const conversionSummaryEl = document.getElementById("conversionSummary");
 const actionsEl = document.getElementById("actions");
 const journeyEl = document.getElementById("journey");
 const goalProgress = document.getElementById("goalProgress");
@@ -250,25 +251,32 @@ function getDesiredTrendDirection(kpiLabel) {
 }
 
 function buildTrendInsight(selected, timeframe) {
-  const trend = selected.trend;
-  if (!trend || trend.length < 2) return "Not enough trend history yet.";
+  const noShowRate = engagementData?.no_show?.no_show_rate ?? 0.2;
+  const journey = selected.journey;
 
-  const start = trend[0];
-  const end = trend.at(-1);
-  const netChange = end - start;
-  const average = trend.reduce((sum, value) => sum + value, 0) / trend.length;
-  const noShowRisk = engagementData?.no_show?.no_show_rate;
-
-  const periods = timeframe === "monthly" ? "months" : "quarters";
-  const direction = netChange >= 0 ? "up" : "down";
-  const momentum = `${Math.abs(netChange).toFixed(1)} pts ${direction} over ${trend.length} ${periods}`;
-  const baseInsight = `Momentum: ${momentum}, now at ${end}% (avg ${average.toFixed(1)}%).`;
-
-  if (typeof noShowRisk === "number") {
-    return `${baseInsight} Paired with a ${(noShowRisk * 100).toFixed(1)}% baseline no-show risk, this indicates reminder and scheduling interventions are likely converting into stronger follow-through.`;
+  if (!journey || journey.length < 2) {
+    return "Not enough journey data yet.";
   }
 
-  return baseInsight;
+  const transitions = [];
+
+  for (let i = 0; i < journey.length - 1; i += 1) {
+    const from = journey[i];
+    const to = journey[i + 1];
+    const drop = Math.max(from.value - to.value, 0);
+    const conversion = from.value ? to.value / from.value : 0;
+
+    transitions.push({ from, to, drop, conversion });
+  }
+
+  const largestDrop = transitions.reduce((max, item) =>
+    item.drop > max.drop ? item : max,
+  transitions[0]);
+
+  const recoverable = Math.round(largestDrop.drop * noShowRate * 0.6);
+  const cadence = timeframe === "monthly" ? "month" : "quarter";
+
+  return `${formatTeamName(teamEl.value)}: biggest leakage is ${largestDrop.from.stage} → ${largestDrop.to.stage} (${(largestDrop.conversion * 100).toFixed(1)}% conversion, ${largestDrop.drop} patients lost). With targeted reminder and outreach fixes, an estimated ${recoverable} patients per ${cadence} could be recovered.`;
 }
 
 function render() {
@@ -299,15 +307,18 @@ function render() {
 
   journeyEl.innerHTML = "";
   const topJourneyValue = Math.max(...selected.journey.map((j) => j.value));
+
   selected.journey.forEach((step) => {
     const item = document.createElement("div");
     item.className = "journey-item";
     const pct = Math.round((step.value / topJourneyValue) * 100);
+
     item.innerHTML = `
       <p>${step.stage}</p>
       <strong>${step.value}</strong>
       <div class="journey-meter"><span style="width: ${pct}%"></span></div>
     `;
+
     journeyEl.appendChild(item);
   });
 
@@ -321,27 +332,33 @@ function render() {
     actionsEl.appendChild(li);
   });
 
-  chartEl.innerHTML = "";
-  const max = Math.max(...selected.trend);
-  const min = Math.min(...selected.trend);
-  const spread = Math.max(max - min, 1);
-  selected.trend.forEach((value, idx) => {
-    const wrap = document.createElement("div");
-    wrap.className = "bar-wrap";
-    const pct = Math.round(((value - min) / spread) * 80 + 20);
+  if (conversionSummaryEl) {
+    conversionSummaryEl.innerHTML = "";
 
-    wrap.innerHTML = `
-      <div class="bar" style="height:${pct}%" title="${value}%"></div>
-      <div class="bar-value">${value}%</div>
-      <div class="bar-label">${timeframe === "monthly" ? `M${idx + 1}` : `Q${idx + 1}`}</div>
-    `;
-    chartEl.appendChild(wrap);
-  });
+    for (let i = 0; i < selected.journey.length - 1; i += 1) {
+      const from = selected.journey[i];
+      const to = selected.journey[i + 1];
+      const conversion = from.value ? (to.value / from.value) * 100 : 0;
+      const drop = Math.max(from.value - to.value, 0);
+
+      const step = document.createElement("article");
+      step.className = "conversion-item";
+      step.innerHTML = `
+        <h3>${from.stage} → ${to.stage}</h3>
+        <p><strong>${conversion.toFixed(1)}%</strong> conversion</p>
+        <p>${to.value.toLocaleString()} reached ${to.stage}</p>
+        <p>${drop.toLocaleString()} dropped off</p>
+      `;
+
+      conversionSummaryEl.appendChild(step);
+    }
+  }
 
   if (trendInsightEl) {
     trendInsightEl.textContent = buildTrendInsight(selected, timeframe);
   }
 }
+
 [timeframeEl, teamEl].forEach((el) => el.addEventListener("change", render));
 
 const engagementKpisEl = document.getElementById("engagementKpis");
@@ -355,9 +372,19 @@ function toPct(value) {
 function renderEngagement() {
   const noShow = engagementData.no_show;
   const satisfaction = engagementData.satisfaction;
-  if (!engagementKpisEl || !leadRiskListEl || !satisfactionSignalsEl || !noShow || !satisfaction) return;
+
+  if (
+    !engagementKpisEl ||
+    !leadRiskListEl ||
+    !satisfactionSignalsEl ||
+    !noShow ||
+    !satisfaction
+  ) {
+    return;
+  }
 
   engagementKpisEl.innerHTML = "";
+
   [
     {
       label: "No-show rate",

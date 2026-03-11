@@ -90,7 +90,8 @@ body {
 .controls,
 .story-panel,
 .trend-panel,
-.journey-panel {
+.journey-panel,
+.engagement-panel {
   background: var(--card);
   border-radius: var(--radius);
   border: 1px solid #dbe7f4;
@@ -100,7 +101,8 @@ body {
 .controls h2,
 .story-panel h2,
 .trend-panel h2,
-.journey-panel h2 {
+.journey-panel h2,
+.engagement-panel h2 {
   margin-top: 0;
   font-size: 1.05rem;
 }
@@ -125,7 +127,8 @@ select {
   color: var(--text);
 }
 
-.kpi-grid {
+.kpi-grid,
+.engagement-kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.8rem;
@@ -209,41 +212,33 @@ select {
   color: var(--muted);
 }
 
-.chart {
-  display: flex;
-  align-items: end;
-  gap: 0.7rem;
-  height: 230px;
-  padding-top: 0.8rem;
+.conversion-summary {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.8rem;
 }
 
-.bar-wrap {
-  flex: 1;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: end;
-  text-align: center;
+.conversion-item {
+  border: 1px solid #dbe7f4;
+  border-radius: 10px;
+  padding: 0.85rem;
+  background: #fbfdff;
 }
 
-.bar {
-  width: 100%;
-  border-radius: 10px 10px 0 0;
-  background: linear-gradient(#63a2ff, #246bce);
-  min-height: 8px;
+.conversion-item h3 {
+  margin: 0 0 0.45rem;
+  font-size: 0.95rem;
+  color: var(--text);
 }
 
-.bar-value {
-  margin-top: 0.35rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #355171;
-}
-
-.bar-label {
-  margin-top: 0.2rem;
-  font-size: 0.75rem;
+.conversion-item p {
+  margin: 0.25rem 0;
+  font-size: 0.88rem;
   color: var(--muted);
+}
+
+.conversion-item strong {
+  color: var(--primary);
 }
 
 .trend-insight {
@@ -252,25 +247,6 @@ select {
   color: #355171;
   border-top: 1px dashed #dbe7f4;
   padding-top: 0.7rem;
-}
-
-@media (max-width: 700px) {
-  .hero {
-    flex-direction: column;
-  }
-}
-
-.engagement-panel {
-  background: var(--card);
-  border-radius: var(--radius);
-  border: 1px solid #dbe7f4;
-  padding: 1rem;
-}
-
-.engagement-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.8rem;
 }
 
 .engagement-split {
@@ -289,4 +265,10 @@ select {
 .engagement-split h3 {
   margin: 0;
   font-size: 0.95rem;
+}
+
+@media (max-width: 700px) {
+  .hero {
+    flex-direction: column;
+  }
 }
