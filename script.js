@@ -235,8 +235,17 @@ function formatTeamName(team) {
     .join(" ");
 }
 
-function isNegativeTrendPositive(kpiLabel) {
-  return kpiLabel.toLowerCase().includes("no-show rate");
+function getDesiredTrendDirection(kpiLabel) {
+  const labelsWhereDecreaseIsGood = new Set([
+    "no-show rate",
+    "readmission risk",
+    "open support tickets",
+    "avg. resolution time"
+  ]);
+
+  return labelsWhereDecreaseIsGood.has(kpiLabel.toLowerCase())
+    ? "down"
+    : "up";
 }
 
 function render() {
@@ -251,9 +260,9 @@ function render() {
     const card = document.createElement("article");
     card.className = "kpi-card";
 
-    const isPositive = isNegativeTrendPositive(kpi.label)
-      ? kpi.delta <= 0
-      : kpi.delta >= 0;
+    const desiredTrendDirection = getDesiredTrendDirection(kpi.label);
+    const isPositive =
+      desiredTrendDirection === "down" ? kpi.delta <= 0 : kpi.delta >= 0;
 
     card.innerHTML = `
       <h3>${kpi.label}</h3>
@@ -303,7 +312,6 @@ function render() {
     chartEl.appendChild(wrap);
   });
 }
-
 [timeframeEl, teamEl].forEach((el) => el.addEventListener("change", render));
 
 const engagementKpisEl = document.getElementById("engagementKpis");
@@ -317,18 +325,38 @@ function toPct(value) {
 function renderEngagement() {
   const noShow = engagementData.no_show;
   const satisfaction = engagementData.satisfaction;
-  if (!engagementKpisEl || !noShow || !satisfaction) return;
+  if (!engagementKpisEl || !leadRiskListEl || !satisfactionSignalsEl || !noShow || !satisfaction) return;
 
   engagementKpisEl.innerHTML = "";
   [
-    { label: "No-show rate", value: toPct(noShow.no_show_rate), note: `${noShow.records.toLocaleString()} appointments analyzed` },
-    { label: "Attendance rate", value: toPct(noShow.attendance_rate), note: "Core retention proxy" },
-    { label: "SMS reminder coverage", value: toPct(noShow.sms_coverage), note: "Reminder workflow penetration" },
-    { label: "Avg satisfaction", value: `${satisfaction.avg_satisfaction}/100`, note: `${toPct(satisfaction.high_satisfaction_ratio)} high-satisfaction ratio` }
+    {
+      label: "No-show rate",
+      value: toPct(noShow.no_show_rate),
+      note: `${noShow.records.toLocaleString()} appointments analyzed`
+    },
+    {
+      label: "Attendance rate",
+      value: toPct(noShow.attendance_rate),
+      note: "Core retention proxy"
+    },
+    {
+      label: "SMS reminder coverage",
+      value: toPct(noShow.sms_coverage),
+      note: "Reminder workflow penetration"
+    },
+    {
+      label: "Avg satisfaction",
+      value: `${satisfaction.avg_satisfaction}/100`,
+      note: `${toPct(satisfaction.high_satisfaction_ratio)} high-satisfaction ratio`
+    }
   ].forEach((item) => {
     const card = document.createElement("article");
     card.className = "kpi-card";
-    card.innerHTML = `<h3>${item.label}</h3><div class="kpi-value">${item.value}</div><div class="kpi-delta">${item.note}</div>`;
+    card.innerHTML = `
+      <h3>${item.label}</h3>
+      <div class="kpi-value">${item.value}</div>
+      <div class="kpi-delta">${item.note}</div>
+    `;
     engagementKpisEl.appendChild(card);
   });
 
@@ -338,6 +366,7 @@ function renderEngagement() {
     li.textContent = `${bucket}: ${toPct(rate)} no-show risk`;
     leadRiskListEl.appendChild(li);
   });
+
   const gap = document.createElement("li");
   gap.textContent = `Long-wait risk gap: ${toPct(noShow.wait_time_gap)} higher than near-term bookings.`;
   leadRiskListEl.appendChild(gap);
@@ -346,6 +375,7 @@ function renderEngagement() {
   const age = satisfaction.correlation_with_satisfaction.Age;
   const severity = satisfaction.correlation_with_satisfaction.Severity;
   const anxiety = satisfaction.correlation_with_satisfaction.Anxiety;
+
   [
     `Age vs satisfaction correlation: ${age.toFixed(2)} (older cohorts report lower satisfaction in sample).`,
     `Severity vs satisfaction correlation: ${severity.toFixed(2)} (clinical acuity impacts patient experience).`,
@@ -361,6 +391,7 @@ async function loadEngagementData() {
   try {
     const response = await fetch("outputs/engagement_metrics.json");
     if (!response.ok) return;
+
     const remote = await response.json();
     if (remote?.no_show && remote?.satisfaction) {
       engagementData = remote;
