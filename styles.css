@@ -240,3 +240,34 @@ select {
     flex-direction: column;
   }
 }
+
+.engagement-panel {
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid #dbe7f4;
+  padding: 1rem;
+}
+
+.engagement-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.8rem;
+}
+
+.engagement-split {
+  margin-top: 0.8rem;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.engagement-split article {
+  border: 1px solid #dbe7f4;
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.engagement-split h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
