@@ -222,10 +222,11 @@ const teamEl = document.getElementById("team");
 const kpiGrid = document.getElementById("kpiGrid");
 const storyTitle = document.getElementById("storyTitle");
 const storyText = document.getElementById("storyText");
-const chartEl = document.getElementById("chart");
+const conversionVizEl = document.getElementById("conversionViz");
 const actionsEl = document.getElementById("actions");
 const journeyEl = document.getElementById("journey");
 const goalProgress = document.getElementById("goalProgress");
+const trendInsightEl = document.getElementById("trendInsight");
 
 function formatTeamName(team) {
   if (team === "all") return "Cross-team view";
@@ -246,6 +247,27 @@ function getDesiredTrendDirection(kpiLabel) {
   return labelsWhereDecreaseIsGood.has(kpiLabel.toLowerCase())
     ? "down"
     : "up";
+}
+
+function buildTrendInsight(selected, timeframe) {
+  const noShowRate = engagementData?.no_show?.no_show_rate ?? 0.2;
+  const journey = selected.journey;
+  if (!journey || journey.length < 2) return "Not enough journey data yet.";
+
+  const transitions = [];
+  for (let i = 0; i < journey.length - 1; i += 1) {
+    const from = journey[i];
+    const to = journey[i + 1];
+    const drop = Math.max(from.value - to.value, 0);
+    const conversion = from.value ? to.value / from.value : 0;
+    transitions.push({ from, to, drop, conversion });
+  }
+
+  const largestDrop = transitions.reduce((max, item) => (item.drop > max.drop ? item : max), transitions[0]);
+  const recoverable = Math.round(largestDrop.drop * noShowRate * 0.6);
+  const cadence = timeframe === "monthly" ? "month" : "quarter";
+
+  return `${formatTeamName(teamEl.value)}: biggest leakage is ${largestDrop.from.stage} → ${largestDrop.to.stage} (${(largestDrop.conversion * 100).toFixed(1)}% conversion, ${largestDrop.drop} patients lost). With targeted reminder + outreach fixes, an estimated ${recoverable} patients per ${cadence} could be recovered.`;
 }
 
 function render() {
@@ -298,19 +320,34 @@ function render() {
     actionsEl.appendChild(li);
   });
 
-  chartEl.innerHTML = "";
-  const max = Math.max(...selected.trend);
-  selected.trend.forEach((value, idx) => {
-    const wrap = document.createElement("div");
-    wrap.className = "bar-wrap";
-    const pct = Math.round((value / max) * 100);
+  if (conversionVizEl) {
+    conversionVizEl.innerHTML = "";
+    for (let i = 0; i < selected.journey.length - 1; i += 1) {
+      const from = selected.journey[i];
+      const to = selected.journey[i + 1];
+      const conversion = from.value ? (to.value / from.value) * 100 : 0;
+      const drop = Math.max(from.value - to.value, 0);
 
-    wrap.innerHTML = `
-      <div class="bar" style="height:${pct}%" title="${value}%"></div>
-      <div class="bar-label">${timeframe === "monthly" ? `M${idx + 1}` : `Q${idx + 1}`}</div>
-    `;
-    chartEl.appendChild(wrap);
-  });
+      const step = document.createElement("article");
+      step.className = "conversion-step";
+      step.innerHTML = `
+        <div class="conversion-head">
+          <span><strong>${from.stage}</strong> → <strong>${to.stage}</strong></span>
+          <span>${conversion.toFixed(1)}% convert</span>
+        </div>
+        <div class="conversion-meter"><span style="width:${Math.max(conversion, 4)}%"></span></div>
+        <div class="conversion-meta">
+          <span>${to.value.toLocaleString()} reached ${to.stage}</span>
+          <span>${drop.toLocaleString()} dropped off</span>
+        </div>
+      `;
+      conversionVizEl.appendChild(step);
+    }
+  }
+
+  if (trendInsightEl) {
+    trendInsightEl.textContent = buildTrendInsight(selected, timeframe);
+  }
 }
 [timeframeEl, teamEl].forEach((el) => el.addEventListener("change", render));
 
