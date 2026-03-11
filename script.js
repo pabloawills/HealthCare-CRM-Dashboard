@@ -226,6 +226,7 @@ const chartEl = document.getElementById("chart");
 const actionsEl = document.getElementById("actions");
 const journeyEl = document.getElementById("journey");
 const goalProgress = document.getElementById("goalProgress");
+const trendInsightEl = document.getElementById("trendInsight");
 
 function formatTeamName(team) {
   if (team === "all") return "Cross-team view";
@@ -246,6 +247,28 @@ function getDesiredTrendDirection(kpiLabel) {
   return labelsWhereDecreaseIsGood.has(kpiLabel.toLowerCase())
     ? "down"
     : "up";
+}
+
+function buildTrendInsight(selected, timeframe) {
+  const trend = selected.trend;
+  if (!trend || trend.length < 2) return "Not enough trend history yet.";
+
+  const start = trend[0];
+  const end = trend.at(-1);
+  const netChange = end - start;
+  const average = trend.reduce((sum, value) => sum + value, 0) / trend.length;
+  const noShowRisk = engagementData?.no_show?.no_show_rate;
+
+  const periods = timeframe === "monthly" ? "months" : "quarters";
+  const direction = netChange >= 0 ? "up" : "down";
+  const momentum = `${Math.abs(netChange).toFixed(1)} pts ${direction} over ${trend.length} ${periods}`;
+  const baseInsight = `Momentum: ${momentum}, now at ${end}% (avg ${average.toFixed(1)}%).`;
+
+  if (typeof noShowRisk === "number") {
+    return `${baseInsight} Paired with a ${(noShowRisk * 100).toFixed(1)}% baseline no-show risk, this indicates reminder and scheduling interventions are likely converting into stronger follow-through.`;
+  }
+
+  return baseInsight;
 }
 
 function render() {
@@ -300,17 +323,24 @@ function render() {
 
   chartEl.innerHTML = "";
   const max = Math.max(...selected.trend);
+  const min = Math.min(...selected.trend);
+  const spread = Math.max(max - min, 1);
   selected.trend.forEach((value, idx) => {
     const wrap = document.createElement("div");
     wrap.className = "bar-wrap";
-    const pct = Math.round((value / max) * 100);
+    const pct = Math.round(((value - min) / spread) * 80 + 20);
 
     wrap.innerHTML = `
       <div class="bar" style="height:${pct}%" title="${value}%"></div>
+      <div class="bar-value">${value}%</div>
       <div class="bar-label">${timeframe === "monthly" ? `M${idx + 1}` : `Q${idx + 1}`}</div>
     `;
     chartEl.appendChild(wrap);
   });
+
+  if (trendInsightEl) {
+    trendInsightEl.textContent = buildTrendInsight(selected, timeframe);
+  }
 }
 [timeframeEl, teamEl].forEach((el) => el.addEventListener("change", render));
 
