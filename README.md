@@ -6,6 +6,8 @@ A lightweight, user-friendly healthcare CRM dashboard built from scratch to tell
 
 - Narrative-first KPI cards for acquisition, engagement, and outcomes
 - Team and timeframe filters to switch business context quickly
+- Patient journey pipeline view to show conversion through care stages
+- Action recommendations that turn KPI insights into next steps
 - Accessible layout with semantic regions and a skip link
 - Lightweight trend visualization without external dependencies
 
@@ -18,3 +20,13 @@ python3 -m http.server 4173
 ```
 
 Then visit <http://localhost:4173>.
+
+## Temporary public preview URL (optional)
+
+You can expose your local instance publicly using LocalTunnel:
+
+```bash
+npx localtunnel --port 4173
+```
+
+This provides a temporary `https://*.loca.lt` URL you can share.

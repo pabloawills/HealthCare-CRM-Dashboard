@@ -6,7 +6,7 @@
   --card: #ffffff;
   --primary: #246bce;
   --success: #1e9f5f;
-  --warning: #d08a00;
+  --danger: #c7392f;
   --radius: 14px;
 }
 
@@ -55,14 +55,14 @@ body {
 
 .hero h1 {
   margin: 0.25rem 0 0.75rem;
-  max-width: 26ch;
+  max-width: 28ch;
   line-height: 1.2;
 }
 
 .hero p {
   margin: 0;
   color: var(--muted);
-  max-width: 50ch;
+  max-width: 60ch;
 }
 
 .hero-badge {
@@ -70,7 +70,7 @@ body {
   border: 1px solid #cddff3;
   border-radius: var(--radius);
   padding: 0.85rem 1rem;
-  min-width: 140px;
+  min-width: 170px;
   display: grid;
   gap: 0.2rem;
   box-shadow: 0 6px 16px rgba(20, 50, 80, 0.08);
@@ -89,7 +89,8 @@ body {
 
 .controls,
 .story-panel,
-.trend-panel {
+.trend-panel,
+.journey-panel {
   background: var(--card);
   border-radius: var(--radius);
   border: 1px solid #dbe7f4;
@@ -98,7 +99,8 @@ body {
 
 .controls h2,
 .story-panel h2,
-.trend-panel h2 {
+.trend-panel h2,
+.journey-panel h2 {
   margin-top: 0;
   font-size: 1.05rem;
 }
@@ -158,7 +160,53 @@ select {
 }
 
 .down {
-  color: #c7392f;
+  color: var(--danger);
+}
+
+.journey-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.7rem;
+}
+
+.journey-item {
+  border: 1px solid #dbe7f4;
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.journey-item p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.journey-item strong {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 1.2rem;
+}
+
+.journey-meter {
+  margin-top: 0.55rem;
+  height: 8px;
+  border-radius: 20px;
+  background: #e7f0fa;
+  overflow: hidden;
+}
+
+.journey-meter span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #79b0ff, #246bce);
+}
+
+.action-list {
+  margin: 0.75rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.4rem;
+  color: var(--muted);
 }
 
 .chart {

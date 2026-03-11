@@ -11,15 +11,15 @@
     <header class="hero">
       <div>
         <p class="eyebrow">Healthcare CRM</p>
-        <h1>PulseCare: A KPI Story for Patient Relationships</h1>
+        <h1>PulseCare: KPI Stories Across the Patient Journey</h1>
         <p>
-          Understand every patient journey with clear signals: acquisition,
-          engagement, and outcomes.
+          See how awareness turns into visits, visits become active care, and
+          care leads to better outcomes.
         </p>
       </div>
       <div class="hero-badge" aria-label="Current quarter status">
-        <span>Q2 Focus</span>
-        <strong>Retention +6.4%</strong>
+        <span>Q2 Goal Progress</span>
+        <strong id="goalProgress">Retention +6.4%</strong>
       </div>
     </header>
 
@@ -49,9 +49,15 @@
 
       <section aria-label="KPI summary" class="kpi-grid" id="kpiGrid"></section>
 
+      <section class="journey-panel" aria-label="Patient journey pipeline">
+        <h2>Patient journey pipeline</h2>
+        <div id="journey" class="journey-grid"></div>
+      </section>
+
       <section class="story-panel" aria-label="Narrative insights">
         <h2 id="storyTitle">Your KPI narrative</h2>
         <p id="storyText"></p>
+        <ul id="actions" class="action-list"></ul>
       </section>
 
       <section class="trend-panel" aria-label="Trend chart">
