@@ -90,7 +90,8 @@ body {
 .controls,
 .story-panel,
 .trend-panel,
-.journey-panel {
+.journey-panel,
+.engagement-panel {
   background: var(--card);
   border-radius: var(--radius);
   border: 1px solid #dbe7f4;
@@ -100,7 +101,8 @@ body {
 .controls h2,
 .story-panel h2,
 .trend-panel h2,
-.journey-panel h2 {
+.journey-panel h2,
+.engagement-panel h2 {
   margin-top: 0;
   font-size: 1.05rem;
 }
@@ -125,7 +127,8 @@ select {
   color: var(--text);
 }
 
-.kpi-grid {
+.kpi-grid,
+.engagement-kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.8rem;
@@ -209,51 +212,33 @@ select {
   color: var(--muted);
 }
 
-.conversion-viz {
+.conversion-summary {
   display: grid;
   gap: 0.75rem;
   margin-top: 0.8rem;
 }
 
-.conversion-step {
+.conversion-item {
   border: 1px solid #dbe7f4;
   border-radius: 10px;
-  padding: 0.75rem;
+  padding: 0.85rem;
+  background: #fbfdff;
 }
 
-.conversion-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.7rem;
+.conversion-item h3 {
+  margin: 0 0 0.45rem;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.conversion-item p {
+  margin: 0.25rem 0;
   font-size: 0.88rem;
   color: var(--muted);
 }
 
-.conversion-head strong {
-  color: var(--text);
-}
-
-.conversion-meter {
-  margin-top: 0.45rem;
-  height: 10px;
-  border-radius: 20px;
-  overflow: hidden;
-  background: #e7f0fa;
-}
-
-.conversion-meter span {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, #6ba7ff, #246bce);
-}
-
-.conversion-meta {
-  margin-top: 0.4rem;
-  display: flex;
-  justify-content: space-between;
-  gap: 0.7rem;
-  font-size: 0.8rem;
-  color: #4b6178;
+.conversion-item strong {
+  color: var(--primary);
 }
 
 .trend-insight {
@@ -262,25 +247,6 @@ select {
   color: #355171;
   border-top: 1px dashed #dbe7f4;
   padding-top: 0.7rem;
-}
-
-@media (max-width: 700px) {
-  .hero {
-    flex-direction: column;
-  }
-}
-
-.engagement-panel {
-  background: var(--card);
-  border-radius: var(--radius);
-  border: 1px solid #dbe7f4;
-  padding: 1rem;
-}
-
-.engagement-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.8rem;
 }
 
 .engagement-split {
@@ -299,4 +265,10 @@ select {
 .engagement-split h3 {
   margin: 0;
   font-size: 0.95rem;
+}
+
+@media (max-width: 700px) {
+  .hero {
+    flex-direction: column;
+  }
 }

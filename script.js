@@ -217,12 +217,13 @@ const engagementFallback = {
 };
 
 let engagementData = engagementFallback;
+
 const timeframeEl = document.getElementById("timeframe");
 const teamEl = document.getElementById("team");
 const kpiGrid = document.getElementById("kpiGrid");
 const storyTitle = document.getElementById("storyTitle");
 const storyText = document.getElementById("storyText");
-const conversionVizEl = document.getElementById("conversionViz");
+const conversionSummaryEl = document.getElementById("conversionSummary");
 const actionsEl = document.getElementById("actions");
 const journeyEl = document.getElementById("journey");
 const goalProgress = document.getElementById("goalProgress");
@@ -252,22 +253,30 @@ function getDesiredTrendDirection(kpiLabel) {
 function buildTrendInsight(selected, timeframe) {
   const noShowRate = engagementData?.no_show?.no_show_rate ?? 0.2;
   const journey = selected.journey;
-  if (!journey || journey.length < 2) return "Not enough journey data yet.";
+
+  if (!journey || journey.length < 2) {
+    return "Not enough journey data yet.";
+  }
 
   const transitions = [];
+
   for (let i = 0; i < journey.length - 1; i += 1) {
     const from = journey[i];
     const to = journey[i + 1];
     const drop = Math.max(from.value - to.value, 0);
     const conversion = from.value ? to.value / from.value : 0;
+
     transitions.push({ from, to, drop, conversion });
   }
 
-  const largestDrop = transitions.reduce((max, item) => (item.drop > max.drop ? item : max), transitions[0]);
+  const largestDrop = transitions.reduce((max, item) =>
+    item.drop > max.drop ? item : max,
+  transitions[0]);
+
   const recoverable = Math.round(largestDrop.drop * noShowRate * 0.6);
   const cadence = timeframe === "monthly" ? "month" : "quarter";
 
-  return `${formatTeamName(teamEl.value)}: biggest leakage is ${largestDrop.from.stage} → ${largestDrop.to.stage} (${(largestDrop.conversion * 100).toFixed(1)}% conversion, ${largestDrop.drop} patients lost). With targeted reminder + outreach fixes, an estimated ${recoverable} patients per ${cadence} could be recovered.`;
+  return `${formatTeamName(teamEl.value)}: biggest leakage is ${largestDrop.from.stage} → ${largestDrop.to.stage} (${(largestDrop.conversion * 100).toFixed(1)}% conversion, ${largestDrop.drop} patients lost). With targeted reminder and outreach fixes, an estimated ${recoverable} patients per ${cadence} could be recovered.`;
 }
 
 function render() {
@@ -298,15 +307,18 @@ function render() {
 
   journeyEl.innerHTML = "";
   const topJourneyValue = Math.max(...selected.journey.map((j) => j.value));
+
   selected.journey.forEach((step) => {
     const item = document.createElement("div");
     item.className = "journey-item";
     const pct = Math.round((step.value / topJourneyValue) * 100);
+
     item.innerHTML = `
       <p>${step.stage}</p>
       <strong>${step.value}</strong>
       <div class="journey-meter"><span style="width: ${pct}%"></span></div>
     `;
+
     journeyEl.appendChild(item);
   });
 
@@ -320,8 +332,9 @@ function render() {
     actionsEl.appendChild(li);
   });
 
-  if (conversionVizEl) {
-    conversionVizEl.innerHTML = "";
+  if (conversionSummaryEl) {
+    conversionSummaryEl.innerHTML = "";
+
     for (let i = 0; i < selected.journey.length - 1; i += 1) {
       const from = selected.journey[i];
       const to = selected.journey[i + 1];
@@ -329,19 +342,15 @@ function render() {
       const drop = Math.max(from.value - to.value, 0);
 
       const step = document.createElement("article");
-      step.className = "conversion-step";
+      step.className = "conversion-item";
       step.innerHTML = `
-        <div class="conversion-head">
-          <span><strong>${from.stage}</strong> → <strong>${to.stage}</strong></span>
-          <span>${conversion.toFixed(1)}% convert</span>
-        </div>
-        <div class="conversion-meter"><span style="width:${Math.max(conversion, 4)}%"></span></div>
-        <div class="conversion-meta">
-          <span>${to.value.toLocaleString()} reached ${to.stage}</span>
-          <span>${drop.toLocaleString()} dropped off</span>
-        </div>
+        <h3>${from.stage} → ${to.stage}</h3>
+        <p><strong>${conversion.toFixed(1)}%</strong> conversion</p>
+        <p>${to.value.toLocaleString()} reached ${to.stage}</p>
+        <p>${drop.toLocaleString()} dropped off</p>
       `;
-      conversionVizEl.appendChild(step);
+
+      conversionSummaryEl.appendChild(step);
     }
   }
 
@@ -349,6 +358,7 @@ function render() {
     trendInsightEl.textContent = buildTrendInsight(selected, timeframe);
   }
 }
+
 [timeframeEl, teamEl].forEach((el) => el.addEventListener("change", render));
 
 const engagementKpisEl = document.getElementById("engagementKpis");
@@ -362,9 +372,19 @@ function toPct(value) {
 function renderEngagement() {
   const noShow = engagementData.no_show;
   const satisfaction = engagementData.satisfaction;
-  if (!engagementKpisEl || !leadRiskListEl || !satisfactionSignalsEl || !noShow || !satisfaction) return;
+
+  if (
+    !engagementKpisEl ||
+    !leadRiskListEl ||
+    !satisfactionSignalsEl ||
+    !noShow ||
+    !satisfaction
+  ) {
+    return;
+  }
 
   engagementKpisEl.innerHTML = "";
+
   [
     {
       label: "No-show rate",
