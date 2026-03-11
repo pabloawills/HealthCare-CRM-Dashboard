@@ -22,6 +22,8 @@ from statistics import mean
 
 DATA_PATH = Path("healthcare_dataset.csv")
 ARCHIVE_PATH = Path("archive.zip")
+NO_SHOW_ARCHIVE_PATH = Path("Medical Appointment No shows.zip")
+SATISFACTION_ARCHIVE_PATH = Path("Patients Satisfaction Ratio.zip")
 OUTPUT_DIR = Path("outputs")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
@@ -61,6 +63,45 @@ def ensure_dataset():
         raise FileNotFoundError("Dataset not found: expected healthcare_dataset.csv or archive.zip")
     with zipfile.ZipFile(ARCHIVE_PATH) as zf:
         zf.extract("healthcare_dataset.csv", path=".")
+
+
+def solve_linear_system(matrix, vector):
+    """Solve Ax = b using Gaussian elimination with partial pivoting."""
+    n = len(vector)
+    aug = [row[:] + [vector[i]] for i, row in enumerate(matrix)]
+
+    for col in range(n):
+        pivot = max(range(col, n), key=lambda r: abs(aug[r][col]))
+        if abs(aug[pivot][col]) < 1e-12:
+            continue
+        aug[col], aug[pivot] = aug[pivot], aug[col]
+
+        pivot_val = aug[col][col]
+        aug[col] = [val / pivot_val for val in aug[col]]
+
+        for row in range(n):
+            if row == col:
+                continue
+            factor = aug[row][col]
+            aug[row] = [rv - factor * cv for rv, cv in zip(aug[row], aug[col])]
+
+    return [aug[i][-1] for i in range(n)]
+
+
+def fit_linear_regression(features, target):
+    """Fit linear regression using normal equations."""
+    design = [[1.0] + row for row in features]
+    cols = len(design[0])
+    xtx = [[0.0] * cols for _ in range(cols)]
+    xty = [0.0] * cols
+
+    for row, y in zip(design, target):
+        for i in range(cols):
+            xty[i] += row[i] * y
+            for j in range(cols):
+                xtx[i][j] += row[i] * row[j]
+
+    return solve_linear_system(xtx, xty)
 
 def load_and_clean(path: Path):
     records = []
@@ -369,6 +410,149 @@ def forecasting(records):
     }
 
 
+def load_no_show_records():
+    if not NO_SHOW_ARCHIVE_PATH.exists():
+        return []
+
+    records = []
+    with zipfile.ZipFile(NO_SHOW_ARCHIVE_PATH) as zf:
+        file_name = zf.namelist()[0]
+        raw = zf.read(file_name).decode("utf-8", errors="replace").splitlines()
+        for row in csv.DictReader(raw):
+            try:
+                age = int(row["Age"])
+                if age < 0 or age > 110:
+                    continue
+                scheduled = date.fromisoformat(row["ScheduledDay"][:10])
+                appointment = date.fromisoformat(row["AppointmentDay"][:10])
+                lead_days = (appointment - scheduled).days
+                if lead_days < 0:
+                    continue
+            except (ValueError, KeyError):
+                continue
+
+            records.append({
+                "age": age,
+                "no_show": 1 if row.get("No-show", "").strip().lower() == "yes" else 0,
+                "sms_received": int(row.get("SMS_received", 0) or 0),
+                "scholarship": int(row.get("Scholarship", 0) or 0),
+                "hypertension": int(row.get("Hipertension", 0) or 0),
+                "diabetes": int(row.get("Diabetes", 0) or 0),
+                "alcoholism": int(row.get("Alcoholism", 0) or 0),
+                "handicap": int(row.get("Handcap", 0) or 0),
+                "lead_days": lead_days,
+                "appointment_month": appointment.strftime("%Y-%m"),
+            })
+    return records
+
+
+def load_satisfaction_records():
+    if not SATISFACTION_ARCHIVE_PATH.exists():
+        return []
+
+    rows = []
+    with zipfile.ZipFile(SATISFACTION_ARCHIVE_PATH) as zf:
+        file_name = zf.namelist()[0]
+        raw = zf.read(file_name).decode("utf-8", errors="replace").splitlines()
+        for row in csv.DictReader(raw):
+            try:
+                rows.append({
+                    "Age": float(row["Age"]),
+                    "Severity": float(row["Severity"]),
+                    "Surg-Med": float(row["Surg-Med"]),
+                    "Anxiety": float(row["Anxiety"]),
+                    "Satisfaction": float(row["Satisfaction"]),
+                })
+            except (ValueError, KeyError):
+                continue
+    return rows
+
+
+def engagement_analysis():
+    no_show_rows = load_no_show_records()
+    sat_rows = load_satisfaction_records()
+    if not no_show_rows and not sat_rows:
+        return {}
+
+    engagement = {}
+    if no_show_rows:
+        no_show_rate = mean(r["no_show"] for r in no_show_rows)
+        monthly = defaultdict(list)
+        for r in no_show_rows:
+            monthly[r["appointment_month"]].append(r["no_show"])
+        monthly_rates = {m: round(mean(vals), 4) for m, vals in sorted(monthly.items())}
+
+        risk_buckets = {
+            "0-1 days": [r["no_show"] for r in no_show_rows if 0 <= r["lead_days"] <= 1],
+            "2-7 days": [r["no_show"] for r in no_show_rows if 2 <= r["lead_days"] <= 7],
+            "8-14 days": [r["no_show"] for r in no_show_rows if 8 <= r["lead_days"] <= 14],
+            "15+ days": [r["no_show"] for r in no_show_rows if r["lead_days"] >= 15],
+        }
+
+        correlations = {
+            "Age": correlation([r["age"] for r in no_show_rows], [r["no_show"] for r in no_show_rows]),
+            "Lead Days": correlation([r["lead_days"] for r in no_show_rows], [r["no_show"] for r in no_show_rows]),
+            "SMS Received": correlation([r["sms_received"] for r in no_show_rows], [r["no_show"] for r in no_show_rows]),
+            "Scholarship": correlation([r["scholarship"] for r in no_show_rows], [r["no_show"] for r in no_show_rows]),
+            "Hypertension": correlation([r["hypertension"] for r in no_show_rows], [r["no_show"] for r in no_show_rows]),
+            "Diabetes": correlation([r["diabetes"] for r in no_show_rows], [r["no_show"] for r in no_show_rows]),
+        }
+
+        short_wait = mean(risk_buckets["0-1 days"]) if risk_buckets["0-1 days"] else no_show_rate
+        long_wait = mean(risk_buckets["15+ days"]) if risk_buckets["15+ days"] else no_show_rate
+
+        engagement["no_show"] = {
+            "records": len(no_show_rows),
+            "no_show_rate": round(no_show_rate, 4),
+            "attendance_rate": round(1 - no_show_rate, 4),
+            "sms_coverage": round(mean(r["sms_received"] for r in no_show_rows), 4),
+            "avg_lead_days": round(mean(r["lead_days"] for r in no_show_rows), 2),
+            "monthly_no_show_rate": monthly_rates,
+            "risk_by_lead_bucket": {
+                bucket: round(mean(vals), 4) for bucket, vals in risk_buckets.items() if vals
+            },
+            "correlation_with_no_show": {k: round(v, 4) for k, v in correlations.items()},
+            "wait_time_gap": round(long_wait - short_wait, 4),
+        }
+
+    if sat_rows:
+        features = [[r["Age"], r["Severity"], r["Surg-Med"], r["Anxiety"]] for r in sat_rows]
+        target = [r["Satisfaction"] for r in sat_rows]
+        coeffs = fit_linear_regression(features, target)
+        predictions = [
+            coeffs[0]
+            + coeffs[1] * row[0]
+            + coeffs[2] * row[1]
+            + coeffs[3] * row[2]
+            + coeffs[4] * row[3]
+            for row in features
+        ]
+
+        engagement["satisfaction"] = {
+            "records": len(sat_rows),
+            "avg_satisfaction": round(mean(target), 2),
+            "high_satisfaction_ratio": round(sum(1 for y in target if y >= 75) / len(target), 4),
+            "correlation_with_satisfaction": {
+                "Age": round(correlation([r["Age"] for r in sat_rows], target), 4),
+                "Severity": round(correlation([r["Severity"] for r in sat_rows], target), 4),
+                "Surg-Med": round(correlation([r["Surg-Med"] for r in sat_rows], target), 4),
+                "Anxiety": round(correlation([r["Anxiety"] for r in sat_rows], target), 4),
+            },
+            "linear_model": {
+                "intercept": round(coeffs[0], 4),
+                "coefficients": {
+                    "Age": round(coeffs[1], 4),
+                    "Severity": round(coeffs[2], 4),
+                    "Surg-Med": round(coeffs[3], 4),
+                    "Anxiety": round(coeffs[4], 4),
+                },
+                "mape": round(mape(target, predictions), 2),
+            },
+        }
+
+    return engagement
+
+
 def save_segmented(segmented_customers):
     out = OUTPUT_DIR / "segmented_customers.csv"
     fields = ["Name", "Age", "Visits", "Total Billing", "Avg Length of Stay", "Emergency Rate", "Abnormal Rate", "Top Condition", "Top Insurer", "Segment"]
@@ -418,7 +602,7 @@ def create_strategy_rules(segment_profiles, forecast):
         json.dump(rules, f, indent=2)
 
 
-def create_report(records, importance, segment_profiles, forecast):
+def create_report(records, importance, segment_profiles, forecast, engagement):
     total_billing = sum(r.billing_amount for r in records)
     avg_billing = total_billing / len(records)
     report = OUTPUT_DIR / "analysis_report.md"
@@ -454,6 +638,22 @@ def create_report(records, importance, segment_profiles, forecast):
         f.write(f"- Next 6-month admissions forecast: **{forecast['next_6_month_admissions_forecast']}**\n")
         f.write(f"- Next 6-month billing forecast: **{forecast['next_6_month_billing_forecast']}**\n")
 
+        if engagement:
+            f.write("\n## Engagement Analytics\n\n")
+            no_show = engagement.get("no_show", {})
+            if no_show:
+                f.write(f"- No-show records analyzed: **{no_show['records']:,}**\n")
+                f.write(f"- No-show rate: **{no_show['no_show_rate']:.1%}**\n")
+                f.write(f"- Attendance rate: **{no_show['attendance_rate']:.1%}**\n")
+                f.write(f"- SMS reminder coverage: **{no_show['sms_coverage']:.1%}**\n")
+                f.write(f"- Wait-time no-show gap (15+ days minus 0-1 days): **{no_show['wait_time_gap']:.1%}**\n")
+            sat = engagement.get("satisfaction", {})
+            if sat:
+                f.write(f"- Satisfaction records analyzed: **{sat['records']:,}**\n")
+                f.write(f"- Average satisfaction score: **{sat['avg_satisfaction']} / 100**\n")
+                f.write(f"- High satisfaction ratio (>=75): **{sat['high_satisfaction_ratio']:.1%}**\n")
+                f.write(f"- Satisfaction model MAPE: **{sat['linear_model']['mape']}%**\n")
+
 
 def main():
     ensure_dataset()
@@ -463,15 +663,20 @@ def main():
     segmented_customers, segment_profiles = build_segments(records)
     save_segmented(segmented_customers)
     forecast = forecasting(records)
+    engagement = engagement_analysis()
     create_strategy_rules(segment_profiles, forecast)
-    create_report(records, importance, segment_profiles, forecast)
+    create_report(records, importance, segment_profiles, forecast, engagement)
 
     with (OUTPUT_DIR / "metrics_snapshot.json").open("w") as f:
         json.dump({
             "feature_importance": importance,
             "segment_profiles": segment_profiles,
             "forecast": forecast,
+            "engagement": engagement,
         }, f, indent=2)
+
+    with (OUTPUT_DIR / "engagement_metrics.json").open("w") as f:
+        json.dump(engagement, f, indent=2)
 
     print("Pipeline completed. Artifacts saved in outputs/.")
 

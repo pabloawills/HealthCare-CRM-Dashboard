@@ -65,5 +65,17 @@ Categorical effect score on billing (higher = stronger impact):
 
 - Admissions model MAPE (last 6 months): **56.61%**
 - Billing model MAPE (last 6 months): **56.51%**
-- Next 6-month admissions forecast: **[916.5, 916.3, 916.1, 915.9, 915.7, 915.5]**
-- Next 6-month billing forecast: **[23410114.01, 23404953.8, 23399793.6, 23394633.39, 23389473.18, 23384312.97]**
+- Next 6-month admissions forecast: **[916.7, 916.5, 916.3, 916.1, 915.9, 915.7]**
+- Next 6-month billing forecast: **[23415274.22, 23410114.01, 23404953.8, 23399793.6, 23394633.39, 23389473.18]**
+
+## Engagement Analytics
+
+- No-show records analyzed: **110,516**
+- No-show rate: **20.2%**
+- Attendance rate: **79.8%**
+- SMS reminder coverage: **32.1%**
+- Wait-time no-show gap (15+ days minus 0-1 days): **26.1%**
+- Satisfaction records analyzed: **25**
+- Average satisfaction score: **65.52 / 100**
+- High satisfaction ratio (>=75): **44.0%**
+- Satisfaction model MAPE: **7.98%**

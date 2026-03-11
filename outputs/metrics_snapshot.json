@@ -265,20 +265,70 @@
     "admissions_mape_last_6": 56.61,
     "billing_mape_last_6": 56.51,
     "next_6_month_admissions_forecast": [
+      916.7,
       916.5,
       916.3,
       916.1,
       915.9,
-      915.7,
-      915.5
+      915.7
     ],
     "next_6_month_billing_forecast": [
+      23415274.22,
       23410114.01,
       23404953.8,
       23399793.6,
       23394633.39,
-      23389473.18,
-      23384312.97
+      23389473.18
     ]
+  },
+  "engagement": {
+    "no_show": {
+      "records": 110516,
+      "no_show_rate": 0.2019,
+      "attendance_rate": 0.7981,
+      "sms_coverage": 0.321,
+      "avg_lead_days": 10.18,
+      "monthly_no_show_rate": {
+        "2016-04": 0.1957,
+        "2016-05": 0.2078,
+        "2016-06": 0.1846
+      },
+      "risk_by_lead_bucket": {
+        "0-1 days": 0.0664,
+        "2-7 days": 0.2468,
+        "8-14 days": 0.3047,
+        "15+ days": 0.3274
+      },
+      "correlation_with_no_show": {
+        "Age": -0.0605,
+        "Lead Days": 0.1863,
+        "SMS Received": 0.1266,
+        "Scholarship": 0.0292,
+        "Hypertension": -0.0356,
+        "Diabetes": -0.0151
+      },
+      "wait_time_gap": 0.2611
+    },
+    "satisfaction": {
+      "records": 25,
+      "avg_satisfaction": 65.52,
+      "high_satisfaction_ratio": 0.44,
+      "correlation_with_satisfaction": {
+        "Age": -0.9014,
+        "Severity": -0.723,
+        "Surg-Med": -0.2339,
+        "Anxiety": -0.5363
+      },
+      "linear_model": {
+        "intercept": 143.8672,
+        "coefficients": {
+          "Age": -1.1172,
+          "Severity": -0.5862,
+          "Surg-Med": 0.4149,
+          "Anxiety": 1.3064
+        },
+        "mape": 7.98
+      }
+    }
   }
 }

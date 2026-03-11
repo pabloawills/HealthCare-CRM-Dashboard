@@ -41,6 +41,7 @@ def recommend(payload):
     )
     segment_actions = rules["segment_strategies"].get(segment, ["Run standard patient engagement workflow."])
     forecast = metrics["forecast"]
+    engagement = metrics.get("engagement", {})
 
     recommendations = {
         "customer": payload,
@@ -50,6 +51,16 @@ def recommend(payload):
             "Prepare for rising admissions by increasing care-team capacity."
             if forecast["next_6_month_admissions_forecast"][-1] > forecast["next_6_month_admissions_forecast"][0]
             else "Admissions trend is stable/down; optimize staffing and reduce no-shows."
+        ),
+        "engagement_tip": (
+            f"No-show baseline is {engagement.get('no_show', {}).get('no_show_rate', 0):.1%}; prioritize bookings under 7 days to reduce attendance risk."
+            if engagement.get("no_show")
+            else "No-show model unavailable; use standard reminder cadence."
+        ),
+        "experience_tip": (
+            f"High-satisfaction ratio is {engagement.get('satisfaction', {}).get('high_satisfaction_ratio', 0):.1%}; prioritize anxiety-aware messaging for vulnerable cohorts."
+            if engagement.get("satisfaction")
+            else "Satisfaction model unavailable; use baseline post-visit outreach."
         ),
     }
     return recommendations

@@ -189,6 +189,34 @@ const data = {
   }
 };
 
+const engagementFallback = {
+  no_show: {
+    records: 110516,
+    no_show_rate: 0.2019,
+    attendance_rate: 0.7981,
+    sms_coverage: 0.321,
+    avg_lead_days: 10.18,
+    risk_by_lead_bucket: {
+      "0-1 days": 0.0664,
+      "2-7 days": 0.2468,
+      "8-14 days": 0.3047,
+      "15+ days": 0.3274
+    },
+    wait_time_gap: 0.2611
+  },
+  satisfaction: {
+    records: 25,
+    avg_satisfaction: 65.52,
+    high_satisfaction_ratio: 0.44,
+    correlation_with_satisfaction: {
+      Age: -0.9014,
+      Severity: -0.723,
+      Anxiety: -0.5363
+    }
+  }
+};
+
+let engagementData = engagementFallback;
 const timeframeEl = document.getElementById("timeframe");
 const teamEl = document.getElementById("team");
 const kpiGrid = document.getElementById("kpiGrid");
@@ -277,4 +305,72 @@ function render() {
 }
 
 [timeframeEl, teamEl].forEach((el) => el.addEventListener("change", render));
+
+const engagementKpisEl = document.getElementById("engagementKpis");
+const leadRiskListEl = document.getElementById("leadRiskList");
+const satisfactionSignalsEl = document.getElementById("satisfactionSignals");
+
+function toPct(value) {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function renderEngagement() {
+  const noShow = engagementData.no_show;
+  const satisfaction = engagementData.satisfaction;
+  if (!engagementKpisEl || !noShow || !satisfaction) return;
+
+  engagementKpisEl.innerHTML = "";
+  [
+    { label: "No-show rate", value: toPct(noShow.no_show_rate), note: `${noShow.records.toLocaleString()} appointments analyzed` },
+    { label: "Attendance rate", value: toPct(noShow.attendance_rate), note: "Core retention proxy" },
+    { label: "SMS reminder coverage", value: toPct(noShow.sms_coverage), note: "Reminder workflow penetration" },
+    { label: "Avg satisfaction", value: `${satisfaction.avg_satisfaction}/100`, note: `${toPct(satisfaction.high_satisfaction_ratio)} high-satisfaction ratio` }
+  ].forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "kpi-card";
+    card.innerHTML = `<h3>${item.label}</h3><div class="kpi-value">${item.value}</div><div class="kpi-delta">${item.note}</div>`;
+    engagementKpisEl.appendChild(card);
+  });
+
+  leadRiskListEl.innerHTML = "";
+  Object.entries(noShow.risk_by_lead_bucket).forEach(([bucket, rate]) => {
+    const li = document.createElement("li");
+    li.textContent = `${bucket}: ${toPct(rate)} no-show risk`;
+    leadRiskListEl.appendChild(li);
+  });
+  const gap = document.createElement("li");
+  gap.textContent = `Long-wait risk gap: ${toPct(noShow.wait_time_gap)} higher than near-term bookings.`;
+  leadRiskListEl.appendChild(gap);
+
+  satisfactionSignalsEl.innerHTML = "";
+  const age = satisfaction.correlation_with_satisfaction.Age;
+  const severity = satisfaction.correlation_with_satisfaction.Severity;
+  const anxiety = satisfaction.correlation_with_satisfaction.Anxiety;
+  [
+    `Age vs satisfaction correlation: ${age.toFixed(2)} (older cohorts report lower satisfaction in sample).`,
+    `Severity vs satisfaction correlation: ${severity.toFixed(2)} (clinical acuity impacts patient experience).`,
+    `Anxiety vs satisfaction correlation: ${anxiety.toFixed(2)} (behavioral support can improve sentiment).`
+  ].forEach((text) => {
+    const li = document.createElement("li");
+    li.textContent = text;
+    satisfactionSignalsEl.appendChild(li);
+  });
+}
+
+async function loadEngagementData() {
+  try {
+    const response = await fetch("outputs/engagement_metrics.json");
+    if (!response.ok) return;
+    const remote = await response.json();
+    if (remote?.no_show && remote?.satisfaction) {
+      engagementData = remote;
+      renderEngagement();
+    }
+  } catch (error) {
+    // Keep fallback values for static previews or local file opens.
+  }
+}
+
 render();
+renderEngagement();
+loadEngagementData();
