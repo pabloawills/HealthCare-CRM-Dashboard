@@ -1,0 +1,4 @@
+__pycache__/
+healthcare_dataset.csv
+outputs/cleaned_healthcare_dataset.csv
+outputs/segmented_customers.csv

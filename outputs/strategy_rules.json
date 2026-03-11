@@ -1,0 +1,28 @@
+{
+  "segment_strategies": {
+    "High-Value Frequent Care": [
+      "Assign dedicated care coordinator and proactive follow-ups every 7 days.",
+      "Offer premium chronic-care plan bundles with telehealth check-ins."
+    ],
+    "Complex Risk": [
+      "Assign dedicated care coordinator and proactive follow-ups every 7 days.",
+      "Offer premium chronic-care plan bundles with telehealth check-ins.",
+      "Trigger emergency-risk outreach workflow and medication adherence reminders.",
+      "Prioritize lab review queue and fast-track specialist appointments.",
+      "Coordinate discharge planning earlier to reduce avoidable inpatient days."
+    ],
+    "Stable Regulars": [
+      "Assign dedicated care coordinator and proactive follow-ups every 7 days.",
+      "Offer premium chronic-care plan bundles with telehealth check-ins."
+    ],
+    "Low-Touch Preventive": [
+      "Assign dedicated care coordinator and proactive follow-ups every 7 days.",
+      "Offer premium chronic-care plan bundles with telehealth check-ins.",
+      "Coordinate discharge planning earlier to reduce avoidable inpatient days."
+    ]
+  },
+  "global_signals": {
+    "admissions_trend_next_6m": "down",
+    "billing_trend_next_6m": "down"
+  }
+}
