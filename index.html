@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PulseCare CRM Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to dashboard</a>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Healthcare CRM</p>
+        <h1>PulseCare: KPI Stories Across the Patient Journey</h1>
+        <p>
+          See how awareness turns into visits, visits become active care, and
+          care leads to better outcomes.
+        </p>
+      </div>
+      <div class="hero-badge" aria-label="Current quarter status">
+        <span>Q2 Goal Progress</span>
+        <strong id="goalProgress">Retention +6.4%</strong>
+      </div>
+    </header>
+
+    <main id="main" class="dashboard" aria-live="polite">
+      <section class="controls" aria-label="Dashboard controls">
+        <h2>Story controls</h2>
+        <div class="control-grid">
+          <label>
+            Timeframe
+            <select id="timeframe" aria-label="Select timeframe">
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+            </select>
+          </label>
+
+          <label>
+            Team focus
+            <select id="team" aria-label="Select care team">
+              <option value="all">All teams</option>
+              <option value="care-coordination">Care Coordination</option>
+              <option value="outreach">Outreach</option>
+              <option value="support">Patient Support</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section aria-label="KPI summary" class="kpi-grid" id="kpiGrid"></section>
+
+      <section class="journey-panel" aria-label="Patient journey pipeline">
+        <h2>Patient journey pipeline</h2>
+        <div id="journey" class="journey-grid"></div>
+      </section>
+
+      <section class="story-panel" aria-label="Narrative insights">
+        <h2 id="storyTitle">Your KPI narrative</h2>
+        <p id="storyText"></p>
+        <ul id="actions" class="action-list"></ul>
+      </section>
+
+      <section class="trend-panel" aria-label="Trend chart">
+        <h2>Engagement trend</h2>
+        <div id="chart" class="chart" role="img" aria-label="Engagement bar chart"></div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>

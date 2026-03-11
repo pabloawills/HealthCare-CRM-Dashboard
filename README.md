@@ -1,37 +1,28 @@
-# HealthCare CRM Dashboard - Analytics Extension
+# PulseCare Healthcare CRM Dashboard
 
-This repository now includes an end-to-end analytics workflow for:
+A lightweight, user-friendly healthcare CRM dashboard built from scratch to tell a clear KPI story, with an analytics extension for deeper healthcare CRM insights.
 
+## Features
+
+### Dashboard
+- Narrative-first KPI cards for acquisition, engagement, and outcomes
+- Team and timeframe filters to switch business context quickly
+- Patient journey pipeline view to show conversion through care stages
+- Action recommendations that turn KPI insights into next steps
+- Accessible layout with semantic regions and a skip link
+- Lightweight trend visualization without external dependencies
+
+### Analytics Extension
 - Data cleaning
 - Important variable analysis
 - Customer segmentation
 - Forecasting admissions and billing
 - A small AI strategy assistant for CRM recommendations
 
-## Run
+## Run dashboard locally
+
+Because this is a static app, you can open `index.html` directly, or run a tiny local server:
 
 ```bash
-python analysis_pipeline.py
-```
+python3 -m http.server 4173
 
-Generated artifacts in `outputs/`:
-
-- `cleaned_healthcare_dataset.csv`
-- `segmented_customers.csv`
-- `metrics_snapshot.json`
-- `strategy_rules.json`
-- `analysis_report.md`
-
-## AI assistant
-
-```bash
-python crm_ai_assistant.py \
-  --name "John Doe" \
-  --age 67 \
-  --billing 32000 \
-  --length-of-stay 18 \
-  --admission-type Emergency \
-  --test-results Abnormal
-```
-
-The assistant returns a JSON recommendation with an assigned segment and strategy actions.
