@@ -207,6 +207,19 @@ function formatTeamName(team) {
     .join(" ");
 }
 
+function getDesiredTrendDirection(kpiLabel) {
+  const labelsWhereDecreaseIsGood = new Set([
+    "no-show rate",
+    "readmission risk",
+    "open support tickets",
+    "avg. resolution time"
+  ]);
+
+  return labelsWhereDecreaseIsGood.has(kpiLabel.toLowerCase())
+    ? "down"
+    : "up";
+}
+
 function render() {
   const timeframe = timeframeEl.value;
   const team = teamEl.value;
@@ -218,10 +231,15 @@ function render() {
   selected.kpis.forEach((kpi) => {
     const card = document.createElement("article");
     card.className = "kpi-card";
+
+    const desiredTrendDirection = getDesiredTrendDirection(kpi.label);
+    const isPositive =
+      desiredTrendDirection === "down" ? kpi.delta <= 0 : kpi.delta >= 0;
+
     card.innerHTML = `
       <h3>${kpi.label}</h3>
       <div class="kpi-value">${kpi.value}</div>
-      <div class="kpi-delta ${kpi.delta >= 0 ? "up" : "down"}">
+      <div class="kpi-delta ${isPositive ? "up" : "down"}">
         ${kpi.delta >= 0 ? "▲" : "▼"} ${Math.abs(kpi.delta)}% vs prior period
       </div>
     `;
