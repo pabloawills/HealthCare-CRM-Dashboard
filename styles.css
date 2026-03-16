@@ -272,3 +272,111 @@ select {
     flex-direction: column;
   }
 }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.ana-chatbot {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 30;
+}
+
+.ana-toggle {
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #246bce, #4f8fe5);
+  color: #fff;
+  padding: 0.7rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(36, 107, 206, 0.25);
+}
+
+.ana-panel {
+  margin-top: 0.65rem;
+  width: min(360px, calc(100vw - 2rem));
+  background: #fff;
+  border: 1px solid #dbe7f4;
+  border-radius: 14px;
+  box-shadow: 0 18px 42px rgba(20, 50, 80, 0.18);
+  overflow: hidden;
+}
+
+.ana-header {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #e6eef8;
+  background: #f8fbff;
+}
+
+.ana-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.ana-header p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.ana-messages {
+  max-height: 320px;
+  overflow: auto;
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.ana-bubble {
+  max-width: 92%;
+  border-radius: 12px;
+  padding: 0.58rem 0.7rem;
+  line-height: 1.35;
+  font-size: 0.9rem;
+}
+
+.ana-bubble.user {
+  justify-self: end;
+  background: #246bce;
+  color: #fff;
+}
+
+.ana-bubble.bot {
+  justify-self: start;
+  background: #f1f6fd;
+  color: #173556;
+}
+
+.ana-input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  border-top: 1px solid #e6eef8;
+  padding: 0.8rem;
+}
+
+.ana-input-row input {
+  border: 1px solid #c8d9ee;
+  border-radius: 8px;
+  padding: 0.55rem;
+}
+
+.ana-input-row button {
+  border: none;
+  border-radius: 8px;
+  background: #246bce;
+  color: #fff;
+  padding: 0.5rem 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}

@@ -364,6 +364,11 @@ function render() {
 const engagementKpisEl = document.getElementById("engagementKpis");
 const leadRiskListEl = document.getElementById("leadRiskList");
 const satisfactionSignalsEl = document.getElementById("satisfactionSignals");
+const anaToggleEl = document.getElementById("anaToggle");
+const anaPanelEl = document.getElementById("anaPanel");
+const anaMessagesEl = document.getElementById("anaMessages");
+const anaFormEl = document.getElementById("anaForm");
+const anaInputEl = document.getElementById("anaInput");
 
 function toPct(value) {
   return `${(value * 100).toFixed(1)}%`;
@@ -444,6 +449,111 @@ function renderEngagement() {
   });
 }
 
+function buildBusinessSnapshot() {
+  const timeframe = timeframeEl.value;
+  const team = teamEl.value;
+  const selected = data[timeframe][team];
+  const noShowRate = (engagementData.no_show.no_show_rate * 100).toFixed(1);
+  const followUp = selected.kpis.find((k) =>
+    k.label.toLowerCase().includes("follow-up"),
+  );
+
+  return {
+    timeframe,
+    team,
+    selected,
+    noShowRate,
+    followUp: followUp?.value ?? "N/A"
+  };
+}
+
+function findLargestJourneyDrop(journey) {
+  let biggest = {
+    from: journey[0]?.stage,
+    to: journey[1]?.stage,
+    drop: 0,
+    conversion: 0
+  };
+
+  for (let i = 0; i < journey.length - 1; i += 1) {
+    const from = journey[i];
+    const to = journey[i + 1];
+    const drop = Math.max(from.value - to.value, 0);
+    const conversion = from.value ? ((to.value / from.value) * 100).toFixed(1) : 0;
+
+    if (drop > biggest.drop) {
+      biggest = { from: from.stage, to: to.stage, drop, conversion };
+    }
+  }
+
+  return biggest;
+}
+
+function getAnaReply(userText) {
+  const text = userText.toLowerCase();
+  const snapshot = buildBusinessSnapshot();
+  const drop = findLargestJourneyDrop(snapshot.selected.journey);
+  const focusTeam = formatTeamName(snapshot.team);
+
+  if (text.includes("scenario") || text.includes("current") || text.includes("status")) {
+    return `Here is your current ${snapshot.timeframe} scenario for ${focusTeam}: goal is ${snapshot.selected.goal}, no-show risk benchmark is ${snapshot.noShowRate}%, and your biggest patient leakage is ${drop.from} → ${drop.to} (${drop.conversion}% conversion). In simple terms: demand is healthy, but this stage needs the fastest fix.`;
+  }
+
+  if (
+    text.includes("strategy") ||
+    text.includes("strategies") ||
+    text.includes("plan") ||
+    text.includes("improve") ||
+    text.includes("help")
+  ) {
+    return `I suggest a 3-step strategy for ${focusTeam}: (1) protect conversion at ${drop.from} → ${drop.to} with reminders and fast follow-up, (2) scale one winning workflow from top-performing clinics, and (3) track one weekly north-star metric tied to ${snapshot.selected.kpis[1].label}. This keeps execution simple and measurable.`;
+  }
+
+  if (text.includes("no-show") || text.includes("attendance")) {
+    return `No-show rate is a key friction point. Your benchmark in this dashboard is ${snapshot.noShowRate}%. Most useful action: prioritize short-lead reminders (SMS + call backup) and flag appointments with longer waits. That usually recovers missed visits quickly.`;
+  }
+
+  if (text.includes("retention") || text.includes("growth") || text.includes("kpi")) {
+    return `For retention and growth, focus on this chain: outreach quality → booked visits → active care. Your dashboard already reflects this in the journey funnel and KPIs. If you improve the largest drop point first, retention usually improves without adding heavy operational load.`;
+  }
+
+  return `Absolutely. I can break down business needs, explain the current scenario, and propose practical strategies. Try asking: “What is our current scenario?”, “Give me a strategy to improve conversion”, or “How do we reduce no-shows?”.`;
+}
+
+function addAnaMessage(text, role = "bot") {
+  if (!anaMessagesEl) return;
+  const bubble = document.createElement("div");
+  bubble.className = `ana-bubble ${role}`;
+  bubble.textContent = text;
+  anaMessagesEl.appendChild(bubble);
+  anaMessagesEl.scrollTop = anaMessagesEl.scrollHeight;
+}
+
+function initAna() {
+  if (!anaToggleEl || !anaPanelEl || !anaFormEl || !anaInputEl) return;
+
+  addAnaMessage(
+    "Hi, I’m Ana 👋 I can explain your business situation in plain language and suggest simple strategies based on this dashboard.",
+  );
+
+  anaToggleEl.addEventListener("click", () => {
+    const isOpen = !anaPanelEl.hidden;
+    anaPanelEl.hidden = isOpen;
+    anaToggleEl.setAttribute("aria-expanded", String(!isOpen));
+    if (!isOpen) anaInputEl.focus();
+  });
+
+  anaFormEl.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const userText = anaInputEl.value.trim();
+    if (!userText) return;
+
+    addAnaMessage(userText, "user");
+    addAnaMessage(getAnaReply(userText), "bot");
+    anaFormEl.reset();
+  });
+}
+
 async function loadEngagementData() {
   try {
     const response = await fetch("outputs/engagement_metrics.json");
@@ -461,4 +571,5 @@ async function loadEngagementData() {
 
 render();
 renderEngagement();
+initAna();
 loadEngagementData();
