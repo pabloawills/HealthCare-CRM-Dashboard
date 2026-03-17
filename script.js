@@ -364,6 +364,11 @@ function render() {
 const engagementKpisEl = document.getElementById("engagementKpis");
 const leadRiskListEl = document.getElementById("leadRiskList");
 const satisfactionSignalsEl = document.getElementById("satisfactionSignals");
+const anaToggleEl = document.getElementById("anaToggle");
+const anaPanelEl = document.getElementById("anaPanel");
+const anaMessagesEl = document.getElementById("anaMessages");
+const anaFormEl = document.getElementById("anaForm");
+const anaInputEl = document.getElementById("anaInput");
 
 function toPct(value) {
   return `${(value * 100).toFixed(1)}%`;
@@ -444,6 +449,258 @@ function renderEngagement() {
   });
 }
 
+function buildBusinessSnapshot() {
+  const timeframe = timeframeEl.value;
+  const team = teamEl.value;
+  const selected = data[timeframe][team];
+  const noShowRate = (engagementData.no_show.no_show_rate * 100).toFixed(1);
+  const followUp = selected.kpis.find((k) =>
+    k.label.toLowerCase().includes("follow-up"),
+  );
+
+  return {
+    timeframe,
+    team,
+    selected,
+    noShowRate,
+    followUp: followUp?.value ?? "N/A",
+    noShow: engagementData.no_show,
+    satisfaction: engagementData.satisfaction
+  };
+}
+
+function findLargestJourneyDrop(journey) {
+  let biggest = {
+    from: journey[0]?.stage,
+    to: journey[1]?.stage,
+    drop: 0,
+    conversion: 0
+  };
+
+  for (let i = 0; i < journey.length - 1; i += 1) {
+    const from = journey[i];
+    const to = journey[i + 1];
+    const drop = Math.max(from.value - to.value, 0);
+    const conversion = from.value ? ((to.value / from.value) * 100).toFixed(1) : 0;
+
+    if (drop > biggest.drop) {
+      biggest = { from: from.stage, to: to.stage, drop, conversion };
+    }
+  }
+
+  return biggest;
+}
+
+function getHighestRiskLeadBucket(noShow) {
+  const buckets = Object.entries(noShow.risk_by_lead_bucket || {});
+
+  if (!buckets.length) {
+    return { label: "long-wait appointments", rate: noShow.no_show_rate || 0 };
+  }
+
+  const highest = buckets.reduce((max, current) =>
+    current[1] > max[1] ? current : max,
+  buckets[0]);
+
+  return { label: highest[0], rate: highest[1] };
+}
+
+function getNoShowPersona(snapshot) {
+  const highestRiskBucket = getHighestRiskLeadBucket(snapshot.noShow);
+  const smsCoverage = snapshot.noShow.sms_coverage;
+  const avgLeadDays = snapshot.noShow.avg_lead_days;
+
+  return {
+    bucket: highestRiskBucket.label,
+    bucketRate: highestRiskBucket.rate,
+    smsCoverage,
+    avgLeadDays
+  };
+}
+
+const anaState = {
+  history: [],
+  lastIntent: "general"
+};
+
+function normalizeText(text) {
+  return text.toLowerCase().replace(/[^a-z0-9\s-]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function hasAny(text, phrases) {
+  return phrases.some((phrase) => text.includes(phrase));
+}
+
+function pickOne(options) {
+  return options[Math.floor(Math.random() * options.length)];
+}
+
+function getTopKpiSummary(selected) {
+  const strongest = selected.kpis
+    .filter((kpi) => getDesiredTrendDirection(kpi.label) === "up" ? kpi.delta >= 0 : kpi.delta <= 0)
+    .slice(0, 2)
+    .map((kpi) => `${kpi.label}: ${kpi.value}`)
+    .join(" | ");
+
+  return strongest || `${selected.kpis[0].label}: ${selected.kpis[0].value}`;
+}
+
+function buildPatternInsights(snapshot, drop, persona) {
+  const age = snapshot.satisfaction?.correlation_with_satisfaction?.Age ?? 0;
+  const severity = snapshot.satisfaction?.correlation_with_satisfaction?.Severity ?? 0;
+  const anxiety = snapshot.satisfaction?.correlation_with_satisfaction?.Anxiety ?? 0;
+
+  const behaviorPattern = `No-show risk concentrates in ${persona.bucket} bookings (${toPct(persona.bucketRate)}), which suggests timing and reminder execution are stronger drivers than diagnosis mix.`;
+  const funnelPattern = `The largest friction point is ${drop.from} → ${drop.to}, so improving this single stage can lift both retention and experience together.`;
+  const modelBridgePattern = `Model bridge: severity (${severity.toFixed(2)}) and anxiety (${anxiety.toFixed(2)}) are linked to lower satisfaction, so high-acuity patients who also wait longer are your highest-value intervention segment.`;
+  const agePattern = `Age correlation is ${age.toFixed(2)}, so experience design should be simplified for older cohorts (clear reminders, low-friction confirmation, proactive reassurance).`;
+
+  return [behaviorPattern, funnelPattern, modelBridgePattern, agePattern];
+}
+
+function detectIntent(text) {
+  const intents = [
+    {
+      name: "noShowPatientType",
+      match:
+        hasAny(text, ["patient", "people", "segment", "profile"]) &&
+        hasAny(text, ["no show", "not show", "miss appointment", "attendance"]) &&
+        hasAny(text, ["likely", "risk", "highest", "most"])
+    },
+    {
+      name: "compareModels",
+      match: hasAny(text, ["compare", "between models", "model", "relationship", "connect"]) &&
+        hasAny(text, ["no show", "satisfaction", "experience", "retention"])
+    },
+    {
+      name: "actionPlan",
+      match: hasAny(text, ["30 days", "next month", "action plan", "roadmap", "step by step"])
+    },
+    {
+      name: "priority",
+      match: hasAny(text, ["priority", "prioritize", "first", "where should", "biggest impact"])
+    },
+    {
+      name: "rootCause",
+      match: hasAny(text, ["why", "cause", "reason", "root cause"]) && hasAny(text, ["drop", "leak", "conversion", "no show"])
+    },
+    {
+      name: "scenario",
+      match: hasAny(text, ["scenario", "current", "status", "how are we doing", "snapshot"])
+    },
+    {
+      name: "strategy",
+      match: hasAny(text, ["strategy", "strategies", "plan", "improve", "help", "what should we do"])
+    },
+    {
+      name: "satisfaction",
+      match: hasAny(text, ["satisfaction", "experience", "csat", "trust"])
+    },
+    {
+      name: "retention",
+      match: hasAny(text, ["retention", "growth", "kpi", "active care", "conversion rate"])
+    }
+  ];
+
+  const found = intents.find((intent) => intent.match);
+  return found?.name || null;
+}
+
+function rememberAnaTurn(userText, reply, intent) {
+  anaState.history.push({ userText, reply, intent, ts: Date.now() });
+  if (anaState.history.length > 8) anaState.history.shift();
+  anaState.lastIntent = intent;
+}
+
+function getAnaReply(userText) {
+  const text = normalizeText(userText);
+  const snapshot = buildBusinessSnapshot();
+  const drop = findLargestJourneyDrop(snapshot.selected.journey);
+  const focusTeam = formatTeamName(snapshot.team);
+  const persona = getNoShowPersona(snapshot);
+  const topKpis = getTopKpiSummary(snapshot.selected);
+  const patterns = buildPatternInsights(snapshot, drop, persona);
+
+  let intent = detectIntent(text);
+
+  if (!intent && hasAny(text, ["why", "and why", "how come", "tell me more"])) {
+    intent = anaState.lastIntent;
+  }
+
+  if (!intent) intent = "general";
+
+  let reply;
+
+  if (intent === "noShowPatientType") {
+    reply = `${pickOne(["Great question.", "Love this question.", "This is exactly the right lens."])} The highest-risk profile in this dashboard is behavioral, not diagnostic: people booked ${persona.bucket} ahead carry the highest no-show risk (${toPct(persona.bucketRate)}). The likely reasons are longer wait windows, more calendar conflicts, and reminder coverage still at ${toPct(persona.smsCoverage)}. A strong strategy is to treat long-lead bookings as a priority segment with stronger reminder cadence and confirmation calls.`;
+  } else if (intent === "compareModels") {
+    reply = `Here’s the useful model connection: no-show risk tells us *who might not arrive*, while satisfaction correlations tell us *who may arrive but still have a poor experience*. ${patterns[2]} In plain terms: if we reduce no-shows for long-lead appointments and add reassurance workflows for high-severity/high-anxiety cohorts, both retention and sentiment should improve together.`;
+  } else if (intent === "actionPlan") {
+    reply = `Perfect—here’s a practical 30-day plan. Week 1: tag ${persona.bucket} bookings as high risk and add two-step reminders. Week 2: escalate non-confirmed visits to same-day outreach. Week 3: pilot one humanized message script for high-anxiety cohorts. Week 4: review ${snapshot.selected.kpis[1].label}, no-show trend, and the ${drop.from} → ${drop.to} conversion. Keep only changes that moved those three numbers.`;
+  } else if (intent === "priority") {
+    reply = `If we want the fastest impact, start with ${drop.from} → ${drop.to}. It’s the biggest drop (${drop.drop} patients). Most teams under-invest here because it feels operational, but this is exactly where small process fixes create compounding KPI gains.`;
+  } else if (intent === "rootCause") {
+    reply = `From the pattern view, this looks less like low demand and more like execution friction. ${patterns[0]} ${patterns[1]} So root cause is likely a mix of wait-time friction + uneven reminder coverage + follow-through gaps between journey stages.`;
+  } else if (intent === "scenario") {
+    reply = `Here’s your current pulse for ${focusTeam} (${snapshot.timeframe}): goal is ${snapshot.selected.goal}, no-show baseline is ${snapshot.noShowRate}%, and the biggest journey gap is ${drop.from} → ${drop.to} at ${drop.conversion}% conversion. Biggest upside: improve that stage and you’ll likely move both retention and experience, not just one metric.`;
+  } else if (intent === "strategy") {
+    reply = `Absolutely. I’d run a simple 3-part strategy: (1) protect ${drop.from} → ${drop.to} with stronger follow-through, (2) give long-lead appointments (avg ${snapshot.noShow.avg_lead_days.toFixed(1)} days) extra reminders, and (3) run a weekly review on one leading KPI (${snapshot.selected.kpis[1].label}) plus one lagging KPI. That balance prevents blind spots.`;
+  } else if (intent === "satisfaction") {
+    reply = `Good call—experience is tightly connected to outcomes here. ${patterns[3]} Also, severity/anxiety correlations indicate high-acuity patients need clearer expectation-setting before and after visits. This is often a communication design issue, not just a clinical one.`;
+  } else if (intent === "retention") {
+    reply = `For retention and growth, think “funnel discipline + risk segmentation.” Close the largest conversion gap first (${drop.from} → ${drop.to}), then segment long-lead bookings and high-anxiety cohorts. Right now your strongest KPI signals are ${topKpis}.`;
+  } else {
+    reply = `I can definitely help with that. I can analyze patterns, connect no-show and satisfaction models, and turn insights into practical strategy. If you share your exact question, I’ll give you a direct recommendation and the reasoning behind it.`;
+  }
+
+  rememberAnaTurn(userText, reply, intent);
+  return reply;
+}
+
+function addAnaMessage(text, role = "bot") {
+  if (!anaMessagesEl) return null;
+  const bubble = document.createElement("div");
+  bubble.className = `ana-bubble ${role}`;
+  bubble.textContent = text;
+  anaMessagesEl.appendChild(bubble);
+  anaMessagesEl.scrollTop = anaMessagesEl.scrollHeight;
+  return bubble;
+}
+
+function initAna() {
+  if (!anaToggleEl || !anaPanelEl || !anaFormEl || !anaInputEl) return;
+
+  addAnaMessage(
+    "Hi, I’m Ana 👋 I’m here to help you make sense of the business quickly — ask me what’s happening, why it might be happening, and what we should do next.",
+  );
+
+  anaToggleEl.addEventListener("click", () => {
+    const isOpen = !anaPanelEl.hidden;
+    anaPanelEl.hidden = isOpen;
+    anaToggleEl.setAttribute("aria-expanded", String(!isOpen));
+    if (!isOpen) anaInputEl.focus();
+  });
+
+  anaFormEl.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const userText = anaInputEl.value.trim();
+    if (!userText) return;
+
+    addAnaMessage(userText, "user");
+    anaFormEl.reset();
+
+    const thinkingBubble = addAnaMessage("Ana is thinking…", "thinking");
+    const pause = 900 + Math.floor(Math.random() * 900);
+    await new Promise((resolve) => setTimeout(resolve, pause));
+
+    if (thinkingBubble?.parentNode) {
+      thinkingBubble.remove();
+    }
+
+    addAnaMessage(getAnaReply(userText), "bot");
+  });
+}
+
 async function loadEngagementData() {
   try {
     const response = await fetch("outputs/engagement_metrics.json");
@@ -461,4 +718,5 @@ async function loadEngagementData() {
 
 render();
 renderEngagement();
+initAna();
 loadEngagementData();
