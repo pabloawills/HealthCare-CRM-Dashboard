@@ -364,6 +364,11 @@ function render() {
 const engagementKpisEl = document.getElementById("engagementKpis");
 const leadRiskListEl = document.getElementById("leadRiskList");
 const satisfactionSignalsEl = document.getElementById("satisfactionSignals");
+const anaToggleEl = document.getElementById("anaToggle");
+const anaPanelEl = document.getElementById("anaPanel");
+const anaMessagesEl = document.getElementById("anaMessages");
+const anaFormEl = document.getElementById("anaForm");
+const anaInputEl = document.getElementById("anaInput");
 
 function toPct(value) {
   return `${(value * 100).toFixed(1)}%`;
@@ -444,6 +449,185 @@ function renderEngagement() {
   });
 }
 
+function buildBusinessSnapshot() {
+  const timeframe = timeframeEl.value;
+  const team = teamEl.value;
+  const selected = data[timeframe][team];
+  const noShowRate = (engagementData.no_show.no_show_rate * 100).toFixed(1);
+  const followUp = selected.kpis.find((k) =>
+    k.label.toLowerCase().includes("follow-up"),
+  );
+
+  return {
+    timeframe,
+    team,
+    selected,
+    noShowRate,
+    followUp: followUp?.value ?? "N/A",
+    noShow: engagementData.no_show,
+    satisfaction: engagementData.satisfaction
+  };
+}
+
+function findLargestJourneyDrop(journey) {
+  let biggest = {
+    from: journey[0]?.stage,
+    to: journey[1]?.stage,
+    drop: 0,
+    conversion: 0
+  };
+
+  for (let i = 0; i < journey.length - 1; i += 1) {
+    const from = journey[i];
+    const to = journey[i + 1];
+    const drop = Math.max(from.value - to.value, 0);
+    const conversion = from.value ? ((to.value / from.value) * 100).toFixed(1) : 0;
+
+    if (drop > biggest.drop) {
+      biggest = { from: from.stage, to: to.stage, drop, conversion };
+    }
+  }
+
+  return biggest;
+}
+
+function getHighestRiskLeadBucket(noShow) {
+  const buckets = Object.entries(noShow.risk_by_lead_bucket || {});
+
+  if (!buckets.length) {
+    return { label: "long-wait appointments", rate: noShow.no_show_rate || 0 };
+  }
+
+  const highest = buckets.reduce((max, current) =>
+    current[1] > max[1] ? current : max,
+  buckets[0]);
+
+  return { label: highest[0], rate: highest[1] };
+}
+
+function getNoShowPersona(snapshot) {
+  const highestRiskBucket = getHighestRiskLeadBucket(snapshot.noShow);
+  const smsCoverage = snapshot.noShow.sms_coverage;
+  const avgLeadDays = snapshot.noShow.avg_lead_days;
+
+  return {
+    bucket: highestRiskBucket.label,
+    bucketRate: highestRiskBucket.rate,
+    smsCoverage,
+    avgLeadDays
+  };
+}
+
+function normalizeText(text) {
+  return text.toLowerCase().replace(/[^a-z0-9\s-]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function getTopKpiSummary(selected) {
+  const strongest = selected.kpis
+    .filter((kpi) => getDesiredTrendDirection(kpi.label) === "up" ? kpi.delta >= 0 : kpi.delta <= 0)
+    .slice(0, 2)
+    .map((kpi) => `${kpi.label}: ${kpi.value}`)
+    .join(" | ");
+
+  return strongest || `${selected.kpis[0].label}: ${selected.kpis[0].value}`;
+}
+
+function getAnaReply(userText) {
+  const text = normalizeText(userText);
+  const snapshot = buildBusinessSnapshot();
+  const drop = findLargestJourneyDrop(snapshot.selected.journey);
+  const focusTeam = formatTeamName(snapshot.team);
+  const persona = getNoShowPersona(snapshot);
+  const topKpis = getTopKpiSummary(snapshot.selected);
+
+  const asksNoShowPatientType =
+    (text.includes("patient") || text.includes("people")) &&
+    (text.includes("likely") || text.includes("risk") || text.includes("high risk")) &&
+    (text.includes("no show") || text.includes("not show") || text.includes("miss appointment"));
+
+  if (asksNoShowPatientType) {
+    return `That’s a very good question. From this data, the highest-risk “patient type” is behavioral: people booked ${persona.bucket} in advance show the highest no-show risk at ${toPct(persona.bucketRate)}. Why this happens: longer wait windows create more schedule conflicts, motivation drops over time, and reminder coverage is still only ${toPct(persona.smsCoverage)}. So practically, think of the riskiest profile as long-lead appointments + weaker reminder reach, not one specific diagnosis group.`;
+  }
+
+  if (text.includes("why") && (text.includes("drop") || text.includes("leak") || text.includes("conversion"))) {
+    return `If we look at the funnel, the main leak is ${drop.from} → ${drop.to}. Usually this is where intent is still high but follow-through gets harder (timing friction, unanswered reminders, scheduling delays). I’d treat this as an operations gap more than a demand problem.`;
+  }
+
+  if (text.includes("priority") || text.includes("first") || text.includes("where should")) {
+    return `If you want the highest-impact first move: focus on ${drop.from} → ${drop.to}. It’s your largest drop (${drop.drop} patients). A focused reminder + same-day outreach sequence here will usually outperform broad campaigns.`;
+  }
+
+  if (text.includes("30 days") || text.includes("next month") || text.includes("action plan")) {
+    return `Here’s a practical 30-day plan: Week 1, flag all ${persona.bucket} bookings as high-risk and add 2-step reminders. Week 2, escalate non-confirmed appointments to a call queue. Week 3, test one script variation by team. Week 4, review ${snapshot.selected.kpis[1].label} plus no-show trend and keep only what improved outcomes.`;
+  }
+
+  if (text.includes("scenario") || text.includes("current") || text.includes("status") || text.includes("how are we doing")) {
+    return `You got it. In the ${snapshot.timeframe} ${focusTeam} view, target is ${snapshot.selected.goal}. Biggest funnel gap is ${drop.from} → ${drop.to} (${drop.conversion}% conversion), and no-show baseline is ${snapshot.noShowRate}%. Quick pulse: solid momentum, but fixing that one stage should unlock the clearest gains.`;
+  }
+
+  if (text.includes("strategy") || text.includes("strategies") || text.includes("plan") || text.includes("improve") || text.includes("help")) {
+    return `Absolutely. I’d keep this simple and practical: (1) defend the ${drop.from} → ${drop.to} stage with tighter reminder cadences, (2) give long-lead bookings (avg ${snapshot.noShow.avg_lead_days.toFixed(1)} days) extra confirmation touches, and (3) run a weekly checkpoint on ${snapshot.selected.kpis[1].label}. That gives fast learning without overwhelming the team.`;
+  }
+
+  if (text.includes("no show") || text.includes("attendance")) {
+    return `Current no-show baseline is ${snapshot.noShowRate}%. Strongest signal is lead time: ${persona.bucket} has the highest risk at ${toPct(persona.bucketRate)}. Reminder coverage is ${toPct(persona.smsCoverage)}, so one practical lever is to increase reminder intensity for long-wait bookings first.`;
+  }
+
+  if (text.includes("satisfaction") || text.includes("experience") || text.includes("csat")) {
+    return `On patient experience, satisfaction is being pulled by severity and anxiety signals in your model. Practical move: pair clinical follow-up with expectation-setting and reassurance scripts for higher-acuity patients, so experience quality improves alongside outcomes.`;
+  }
+
+  if (text.includes("retention") || text.includes("growth") || text.includes("kpi")) {
+    return `To improve retention and growth without overcomplicating things: fix the biggest conversion gap first (${drop.from} → ${drop.to}), then track one leading KPI weekly. Right now your strongest KPI pulse is ${topKpis}.`;
+  }
+
+  return `I hear you. I can help with practical planning, no-show risk, funnel leaks, 30-day actions, and KPI priorities. If you want, ask me: “What should we prioritize first?” or “Give me a 30-day plan for this team.”`;
+}
+
+function addAnaMessage(text, role = "bot") {
+  if (!anaMessagesEl) return null;
+  const bubble = document.createElement("div");
+  bubble.className = `ana-bubble ${role}`;
+  bubble.textContent = text;
+  anaMessagesEl.appendChild(bubble);
+  anaMessagesEl.scrollTop = anaMessagesEl.scrollHeight;
+  return bubble;
+}
+
+function initAna() {
+  if (!anaToggleEl || !anaPanelEl || !anaFormEl || !anaInputEl) return;
+
+  addAnaMessage(
+    "Hi, I’m Ana 👋 I’m here to help you make sense of the business quickly — ask me what’s happening, why it might be happening, and what we should do next.",
+  );
+
+  anaToggleEl.addEventListener("click", () => {
+    const isOpen = !anaPanelEl.hidden;
+    anaPanelEl.hidden = isOpen;
+    anaToggleEl.setAttribute("aria-expanded", String(!isOpen));
+    if (!isOpen) anaInputEl.focus();
+  });
+
+  anaFormEl.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const userText = anaInputEl.value.trim();
+    if (!userText) return;
+
+    addAnaMessage(userText, "user");
+    anaFormEl.reset();
+
+    const thinkingBubble = addAnaMessage("Ana is thinking…", "thinking");
+    const pause = 900 + Math.floor(Math.random() * 900);
+    await new Promise((resolve) => setTimeout(resolve, pause));
+
+    if (thinkingBubble?.parentNode) {
+      thinkingBubble.remove();
+    }
+
+    addAnaMessage(getAnaReply(userText), "bot");
+  });
+}
+
 async function loadEngagementData() {
   try {
     const response = await fetch("outputs/engagement_metrics.json");
@@ -461,4 +645,5 @@ async function loadEngagementData() {
 
 render();
 renderEngagement();
+initAna();
 loadEngagementData();

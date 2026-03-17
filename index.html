@@ -60,11 +60,9 @@
         <ul id="actions" class="action-list"></ul>
       </section>
 
-<section class="trend-panel" aria-label="Journey insights">
-  <h2>Journey insights</h2>
-  <div id="conversionSummary" class="conversion-summary"></div>
-  <p id="trendInsight" class="trend-insight"></p>
-</section>
+      <section class="trend-panel" aria-label="Journey insights">
+        <h2>Journey insights</h2>
+        <div id="conversionSummary" class="conversion-summary"></div>
         <p id="trendInsight" class="trend-insight"></p>
       </section>
 
@@ -83,6 +81,40 @@
         </div>
       </section>
     </main>
+
+    <aside class="ana-chatbot" aria-label="Ana business assistant">
+      <button
+        id="anaToggle"
+        class="ana-toggle"
+        aria-expanded="false"
+        aria-controls="anaPanel"
+      >
+        Chat with Ana
+      </button>
+
+      <section id="anaPanel" class="ana-panel" hidden>
+        <header class="ana-header">
+          <div>
+            <h2>Ana</h2>
+            <p>Your business strategy assistant</p>
+          </div>
+        </header>
+
+        <div id="anaMessages" class="ana-messages" aria-live="polite"></div>
+
+        <form id="anaForm" class="ana-input-row">
+          <label for="anaInput" class="sr-only">Ask Ana</label>
+          <input
+            id="anaInput"
+            name="message"
+            type="text"
+            placeholder="Ask about growth, retention, no-shows, or strategy..."
+            required
+          />
+          <button type="submit">Send</button>
+        </form>
+      </section>
+    </aside>
 
     <script src="script.js"></script>
   </body>
