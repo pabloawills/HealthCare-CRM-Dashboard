@@ -357,6 +357,26 @@ select {
   color: #173556;
 }
 
+.ana-bubble.thinking {
+  justify-self: start;
+  background: #eef4fc;
+  color: #355171;
+  font-style: italic;
+  animation: thinkingPulse 1s ease-in-out infinite;
+}
+
+@keyframes thinkingPulse {
+  0% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.55;
+  }
+}
+
 .ana-input-row {
   display: grid;
   grid-template-columns: 1fr auto;
