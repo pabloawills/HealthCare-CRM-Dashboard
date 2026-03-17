@@ -366,6 +366,7 @@ select {
 }
 
 @keyframes thinkingPulse {
+@keyframes thinkingPulse {
   0% {
     opacity: 0.55;
   }
