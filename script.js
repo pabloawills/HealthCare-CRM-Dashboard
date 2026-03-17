@@ -3,10 +3,20 @@ const data = {
     all: {
       goal: "Retention +6.4%",
       kpis: [
-        { label: "New patients", value: 184, delta: 12 },
-        { label: "Follow-up completion", value: "88%", delta: 6.4 },
-        { label: "No-show rate", value: "9%", delta: -2.1 },
-        { label: "Satisfaction score", value: "4.7/5", delta: 0.3 }
+        { label: "New patients", value: 184, delta: 12, deltaSuffix: "%" },
+        {
+          label: "Follow-up completion",
+          value: "88%",
+          delta: 6.4,
+          deltaSuffix: " pts"
+        },
+        { label: "No-show rate", value: "9%", delta: -2.1, deltaSuffix: " pts" },
+        {
+          label: "Satisfaction score",
+          value: "4.7/5",
+          delta: 0.3,
+          deltaSuffix: " pts"
+        }
       ],
       journey: [
         { stage: "Aware", value: 820 },
@@ -26,10 +36,25 @@ const data = {
     "care-coordination": {
       goal: "Readmission risk -1.4%",
       kpis: [
-        { label: "Care plans updated", value: 132, delta: 14 },
-        { label: "Medication adherence", value: "81%", delta: 4.2 },
-        { label: "Readmission risk", value: "7%", delta: -1.4 },
-        { label: "Patient trust score", value: "4.8/5", delta: 0.2 }
+        { label: "Care plans updated", value: 132, delta: 14, deltaSuffix: "%" },
+        {
+          label: "Medication adherence",
+          value: "81%",
+          delta: 4.2,
+          deltaSuffix: " pts"
+        },
+        {
+          label: "Readmission risk",
+          value: "7%",
+          delta: -1.4,
+          deltaSuffix: " pts"
+        },
+        {
+          label: "Patient trust score",
+          value: "4.8/5",
+          delta: 0.2,
+          deltaSuffix: " pts"
+        }
       ],
       journey: [
         { stage: "Enrolled", value: 236 },
@@ -49,10 +74,15 @@ const data = {
     outreach: {
       goal: "Lead-to-visit +3.4%",
       kpis: [
-        { label: "Outreach campaigns", value: 24, delta: 7 },
-        { label: "Response rate", value: "46%", delta: 5.1 },
-        { label: "Lead-to-visit conversion", value: "31%", delta: 3.4 },
-        { label: "First-visit NPS", value: "59", delta: 5 }
+        { label: "Outreach campaigns", value: 24, delta: 7, deltaSuffix: "%" },
+        { label: "Response rate", value: "46%", delta: 5.1, deltaSuffix: " pts" },
+        {
+          label: "Lead-to-visit conversion",
+          value: "31%",
+          delta: 3.4,
+          deltaSuffix: " pts"
+        },
+        { label: "First-visit NPS", value: "59", delta: 5, deltaSuffix: " pts" }
       ],
       journey: [
         { stage: "Contacted", value: 1130 },
@@ -72,10 +102,25 @@ const data = {
     support: {
       goal: "Resolution time -1.3h",
       kpis: [
-        { label: "Open support tickets", value: 41, delta: -9 },
-        { label: "Avg. resolution time", value: "6.1h", delta: -1.3 },
-        { label: "Self-service usage", value: "38%", delta: 8.2 },
-        { label: "Support CSAT", value: "93%", delta: 2.4 }
+        {
+          label: "Open support tickets",
+          value: 41,
+          delta: -9,
+          deltaSuffix: "%"
+        },
+        {
+          label: "Avg. resolution time",
+          value: "6.1h",
+          delta: -1.3,
+          deltaSuffix: "h"
+        },
+        {
+          label: "Self-service usage",
+          value: "38%",
+          delta: 8.2,
+          deltaSuffix: " pts"
+        },
+        { label: "Support CSAT", value: "93%", delta: 2.4, deltaSuffix: " pts" }
       ],
       journey: [
         { stage: "Incoming", value: 190 },
@@ -97,10 +142,20 @@ const data = {
     all: {
       goal: "Retention +8.8%",
       kpis: [
-        { label: "New patients", value: 542, delta: 18 },
-        { label: "Follow-up completion", value: "86%", delta: 8.8 },
-        { label: "No-show rate", value: "11%", delta: -3.4 },
-        { label: "Satisfaction score", value: "4.6/5", delta: 0.5 }
+        { label: "New patients", value: 542, delta: 18, deltaSuffix: "%" },
+        {
+          label: "Follow-up completion",
+          value: "86%",
+          delta: 8.8,
+          deltaSuffix: " pts"
+        },
+        { label: "No-show rate", value: "11%", delta: -3.4, deltaSuffix: " pts" },
+        {
+          label: "Satisfaction score",
+          value: "4.6/5",
+          delta: 0.5,
+          deltaSuffix: " pts"
+        }
       ],
       journey: [
         { stage: "Aware", value: 2410 },
@@ -120,10 +175,25 @@ const data = {
     "care-coordination": {
       goal: "Adherence +6.7%",
       kpis: [
-        { label: "Care plans updated", value: 403, delta: 19 },
-        { label: "Medication adherence", value: "79%", delta: 6.7 },
-        { label: "Readmission risk", value: "8%", delta: -2.5 },
-        { label: "Patient trust score", value: "4.7/5", delta: 0.4 }
+        { label: "Care plans updated", value: 403, delta: 19, deltaSuffix: "%" },
+        {
+          label: "Medication adherence",
+          value: "79%",
+          delta: 6.7,
+          deltaSuffix: " pts"
+        },
+        {
+          label: "Readmission risk",
+          value: "8%",
+          delta: -2.5,
+          deltaSuffix: " pts"
+        },
+        {
+          label: "Patient trust score",
+          value: "4.7/5",
+          delta: 0.4,
+          deltaSuffix: " pts"
+        }
       ],
       journey: [
         { stage: "Enrolled", value: 710 },
@@ -143,10 +213,15 @@ const data = {
     outreach: {
       goal: "Response +7.2%",
       kpis: [
-        { label: "Outreach campaigns", value: 73, delta: 13 },
-        { label: "Response rate", value: "43%", delta: 7.2 },
-        { label: "Lead-to-visit conversion", value: "29%", delta: 4.1 },
-        { label: "First-visit NPS", value: "56", delta: 7 }
+        { label: "Outreach campaigns", value: 73, delta: 13, deltaSuffix: "%" },
+        { label: "Response rate", value: "43%", delta: 7.2, deltaSuffix: " pts" },
+        {
+          label: "Lead-to-visit conversion",
+          value: "29%",
+          delta: 4.1,
+          deltaSuffix: " pts"
+        },
+        { label: "First-visit NPS", value: "56", delta: 7, deltaSuffix: " pts" }
       ],
       journey: [
         { stage: "Contacted", value: 3490 },
@@ -166,10 +241,25 @@ const data = {
     support: {
       goal: "CSAT +3.7%",
       kpis: [
-        { label: "Open support tickets", value: 126, delta: -15 },
-        { label: "Avg. resolution time", value: "6.5h", delta: -2.2 },
-        { label: "Self-service usage", value: "34%", delta: 10.4 },
-        { label: "Support CSAT", value: "91%", delta: 3.7 }
+        {
+          label: "Open support tickets",
+          value: 126,
+          delta: -15,
+          deltaSuffix: "%"
+        },
+        {
+          label: "Avg. resolution time",
+          value: "6.5h",
+          delta: -2.2,
+          deltaSuffix: "h"
+        },
+        {
+          label: "Self-service usage",
+          value: "34%",
+          delta: 10.4,
+          deltaSuffix: " pts"
+        },
+        { label: "Support CSAT", value: "91%", delta: 3.7, deltaSuffix: " pts" }
       ],
       journey: [
         { stage: "Incoming", value: 620 },
@@ -228,6 +318,14 @@ const actionsEl = document.getElementById("actions");
 const journeyEl = document.getElementById("journey");
 const goalProgress = document.getElementById("goalProgress");
 const trendInsightEl = document.getElementById("trendInsight");
+const engagementKpisEl = document.getElementById("engagementKpis");
+const leadRiskListEl = document.getElementById("leadRiskList");
+const satisfactionSignalsEl = document.getElementById("satisfactionSignals");
+const anaToggleEl = document.getElementById("anaToggle");
+const anaPanelEl = document.getElementById("anaPanel");
+const anaMessagesEl = document.getElementById("anaMessages");
+const anaFormEl = document.getElementById("anaForm");
+const anaInputEl = document.getElementById("anaInput");
 
 function formatTeamName(team) {
   if (team === "all") return "Cross-team view";
@@ -238,23 +336,35 @@ function formatTeamName(team) {
 }
 
 function getDesiredTrendDirection(kpiLabel) {
-  const labelsWhereDecreaseIsGood = new Set([
-    "no-show rate",
-    "readmission risk",
-    "open support tickets",
-    "avg. resolution time"
-  ]);
+  const label = kpiLabel.toLowerCase();
+  const decreaseIsGoodPatterns = [
+    "no-show",
+    "readmission",
+    "resolution time",
+    "support tickets",
+    "open tickets"
+  ];
 
-  return labelsWhereDecreaseIsGood.has(kpiLabel.toLowerCase())
+  return decreaseIsGoodPatterns.some((pattern) => label.includes(pattern))
     ? "down"
     : "up";
+}
+
+function toPct(value) {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function formatDelta(kpi) {
+  const suffix = kpi.deltaSuffix || "";
+  const direction = kpi.delta >= 0 ? "▲" : "▼";
+  return `${direction} ${Math.abs(kpi.delta)}${suffix} vs prior period`;
 }
 
 function buildTrendInsight(selected, timeframe) {
   const noShowRate = engagementData?.no_show?.no_show_rate ?? 0.2;
   const journey = selected.journey;
 
-  if (!journey || journey.length < 2) {
+  if (!Array.isArray(journey) || journey.length < 2) {
     return "Not enough journey data yet.";
   }
 
@@ -269,9 +379,10 @@ function buildTrendInsight(selected, timeframe) {
     transitions.push({ from, to, drop, conversion });
   }
 
-  const largestDrop = transitions.reduce((max, item) =>
-    item.drop > max.drop ? item : max,
-  transitions[0]);
+  const largestDrop = transitions.reduce(
+    (max, item) => (item.drop > max.drop ? item : max),
+    transitions[0]
+  );
 
   const recoverable = Math.round(largestDrop.drop * noShowRate * 0.6);
   const cadence = timeframe === "monthly" ? "month" : "quarter";
@@ -299,9 +410,10 @@ function render() {
       <h3>${kpi.label}</h3>
       <div class="kpi-value">${kpi.value}</div>
       <div class="kpi-delta ${isPositive ? "up" : "down"}">
-        ${kpi.delta >= 0 ? "▲" : "▼"} ${Math.abs(kpi.delta)}% vs prior period
+        ${formatDelta(kpi)}
       </div>
     `;
+
     kpiGrid.appendChild(card);
   });
 
@@ -357,21 +469,6 @@ function render() {
   if (trendInsightEl) {
     trendInsightEl.textContent = buildTrendInsight(selected, timeframe);
   }
-}
-
-[timeframeEl, teamEl].forEach((el) => el.addEventListener("change", render));
-
-const engagementKpisEl = document.getElementById("engagementKpis");
-const leadRiskListEl = document.getElementById("leadRiskList");
-const satisfactionSignalsEl = document.getElementById("satisfactionSignals");
-const anaToggleEl = document.getElementById("anaToggle");
-const anaPanelEl = document.getElementById("anaPanel");
-const anaMessagesEl = document.getElementById("anaMessages");
-const anaFormEl = document.getElementById("anaForm");
-const anaInputEl = document.getElementById("anaInput");
-
-function toPct(value) {
-  return `${(value * 100).toFixed(1)}%`;
 }
 
 function renderEngagement() {
@@ -454,9 +551,10 @@ function buildBusinessSnapshot() {
   const team = teamEl.value;
   const selected = data[timeframe][team];
   const noShowRate = (engagementData.no_show.no_show_rate * 100).toFixed(1);
-  const followUp = selected.kpis.find((k) =>
-    k.label.toLowerCase().includes("follow-up"),
+  const followUp = selected.kpis.find((kpi) =>
+    kpi.label.toLowerCase().includes("follow-up")
   );
+  const northStarKpi = selected.kpis?.[1]?.label || "follow-up completion";
 
   return {
     timeframe,
@@ -465,23 +563,37 @@ function buildBusinessSnapshot() {
     noShowRate,
     followUp: followUp?.value ?? "N/A",
     noShow: engagementData.no_show,
-    satisfaction: engagementData.satisfaction
+    satisfaction: engagementData.satisfaction,
+    northStarKpi
   };
 }
 
 function findLargestJourneyDrop(journey) {
+  if (!Array.isArray(journey) || journey.length < 2) {
+    return {
+      from: "Unknown",
+      to: "Unknown",
+      drop: 0,
+      conversion: 0
+    };
+  }
+
   let biggest = {
-    from: journey[0]?.stage,
-    to: journey[1]?.stage,
-    drop: 0,
-    conversion: 0
+    from: journey[0].stage,
+    to: journey[1].stage,
+    drop: Math.max(journey[0].value - journey[1].value, 0),
+    conversion: journey[0].value
+      ? ((journey[1].value / journey[0].value) * 100).toFixed(1)
+      : 0
   };
 
   for (let i = 0; i < journey.length - 1; i += 1) {
     const from = journey[i];
     const to = journey[i + 1];
     const drop = Math.max(from.value - to.value, 0);
-    const conversion = from.value ? ((to.value / from.value) * 100).toFixed(1) : 0;
+    const conversion = from.value
+      ? ((to.value / from.value) * 100).toFixed(1)
+      : 0;
 
     if (drop > biggest.drop) {
       biggest = { from: from.stage, to: to.stage, drop, conversion };
@@ -498,33 +610,38 @@ function getHighestRiskLeadBucket(noShow) {
     return { label: "long-wait appointments", rate: noShow.no_show_rate || 0 };
   }
 
-  const highest = buckets.reduce((max, current) =>
-    current[1] > max[1] ? current : max,
-  buckets[0]);
+  const highest = buckets.reduce(
+    (max, current) => (current[1] > max[1] ? current : max),
+    buckets[0]
+  );
 
   return { label: highest[0], rate: highest[1] };
 }
 
 function getNoShowPersona(snapshot) {
   const highestRiskBucket = getHighestRiskLeadBucket(snapshot.noShow);
-  const smsCoverage = snapshot.noShow.sms_coverage;
-  const avgLeadDays = snapshot.noShow.avg_lead_days;
 
   return {
     bucket: highestRiskBucket.label,
     bucketRate: highestRiskBucket.rate,
-    smsCoverage,
-    avgLeadDays
+    smsCoverage: snapshot.noShow.sms_coverage,
+    avgLeadDays: snapshot.noShow.avg_lead_days
   };
 }
 
 function normalizeText(text) {
-  return text.toLowerCase().replace(/[^a-z0-9\s-]/g, " ").replace(/\s+/g, " ").trim();
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function getTopKpiSummary(selected) {
   const strongest = selected.kpis
-    .filter((kpi) => getDesiredTrendDirection(kpi.label) === "up" ? kpi.delta >= 0 : kpi.delta <= 0)
+    .filter((kpi) =>
+      getDesiredTrendDirection(kpi.label) === "up" ? kpi.delta >= 0 : kpi.delta <= 0
+    )
     .slice(0, 2)
     .map((kpi) => `${kpi.label}: ${kpi.value}`)
     .join(" | ");
@@ -546,46 +663,47 @@ function getAnaReply(userText) {
     (text.includes("no show") || text.includes("not show") || text.includes("miss appointment"));
 
   if (asksNoShowPatientType) {
-    return `That’s a very good question. From this data, the highest-risk “patient type” is behavioral: people booked ${persona.bucket} in advance show the highest no-show risk at ${toPct(persona.bucketRate)}. Why this happens: longer wait windows create more schedule conflicts, motivation drops over time, and reminder coverage is still only ${toPct(persona.smsCoverage)}. So practically, think of the riskiest profile as long-lead appointments + weaker reminder reach, not one specific diagnosis group.`;
+    return `That’s a very good question. From this data, the highest-risk patient pattern is behavioral: people booked ${persona.bucket} in advance show the highest no-show risk at ${toPct(persona.bucketRate)}. Longer wait windows create more schedule conflicts, motivation drops over time, and reminder coverage is still only ${toPct(persona.smsCoverage)}. So the riskiest profile here is long-lead appointments plus weaker reminder reach, not one specific diagnosis group.`;
   }
 
   if (text.includes("why") && (text.includes("drop") || text.includes("leak") || text.includes("conversion"))) {
-    return `If we look at the funnel, the main leak is ${drop.from} → ${drop.to}. Usually this is where intent is still high but follow-through gets harder (timing friction, unanswered reminders, scheduling delays). I’d treat this as an operations gap more than a demand problem.`;
+    return `If we look at the funnel, the main leak is ${drop.from} → ${drop.to}. Usually this is where intent is still high but follow-through gets harder because of timing friction, unanswered reminders, or scheduling delays. I’d treat this as an operations gap more than a demand problem.`;
   }
 
   if (text.includes("priority") || text.includes("first") || text.includes("where should")) {
-    return `If you want the highest-impact first move: focus on ${drop.from} → ${drop.to}. It’s your largest drop (${drop.drop} patients). A focused reminder + same-day outreach sequence here will usually outperform broad campaigns.`;
+    return `If you want the highest-impact first move, focus on ${drop.from} → ${drop.to}. It’s your largest drop with ${drop.drop} patients lost. A focused reminder and same-day outreach sequence here will usually outperform broad campaigns.`;
   }
 
   if (text.includes("30 days") || text.includes("next month") || text.includes("action plan")) {
-    return `Here’s a practical 30-day plan: Week 1, flag all ${persona.bucket} bookings as high-risk and add 2-step reminders. Week 2, escalate non-confirmed appointments to a call queue. Week 3, test one script variation by team. Week 4, review ${snapshot.selected.kpis[1].label} plus no-show trend and keep only what improved outcomes.`;
+    return `Here’s a practical 30-day plan: Week 1, flag all ${persona.bucket} bookings as high-risk and add 2-step reminders. Week 2, escalate non-confirmed appointments to a call queue. Week 3, test one script variation by team. Week 4, review ${snapshot.northStarKpi} plus no-show trend and keep only what improved outcomes.`;
   }
 
   if (text.includes("scenario") || text.includes("current") || text.includes("status") || text.includes("how are we doing")) {
-    return `You got it. In the ${snapshot.timeframe} ${focusTeam} view, target is ${snapshot.selected.goal}. Biggest funnel gap is ${drop.from} → ${drop.to} (${drop.conversion}% conversion), and no-show baseline is ${snapshot.noShowRate}%. Quick pulse: solid momentum, but fixing that one stage should unlock the clearest gains.`;
+    return `In the ${snapshot.timeframe} ${focusTeam} view, the target is ${snapshot.selected.goal}. Biggest funnel gap is ${drop.from} → ${drop.to} with ${drop.conversion}% conversion, and no-show baseline is ${snapshot.noShowRate}%. Quick pulse: solid momentum, but fixing that stage should unlock the clearest gains.`;
   }
 
   if (text.includes("strategy") || text.includes("strategies") || text.includes("plan") || text.includes("improve") || text.includes("help")) {
-    return `Absolutely. I’d keep this simple and practical: (1) defend the ${drop.from} → ${drop.to} stage with tighter reminder cadences, (2) give long-lead bookings (avg ${snapshot.noShow.avg_lead_days.toFixed(1)} days) extra confirmation touches, and (3) run a weekly checkpoint on ${snapshot.selected.kpis[1].label}. That gives fast learning without overwhelming the team.`;
+    return `I’d keep this simple and practical: first, defend the ${drop.from} → ${drop.to} stage with tighter reminder cadences; second, give long-lead bookings averaging ${snapshot.noShow.avg_lead_days.toFixed(1)} days extra confirmation touches; third, run a weekly checkpoint on ${snapshot.northStarKpi}. That gives fast learning without overwhelming the team.`;
   }
 
   if (text.includes("no show") || text.includes("attendance")) {
-    return `Current no-show baseline is ${snapshot.noShowRate}%. Strongest signal is lead time: ${persona.bucket} has the highest risk at ${toPct(persona.bucketRate)}. Reminder coverage is ${toPct(persona.smsCoverage)}, so one practical lever is to increase reminder intensity for long-wait bookings first.`;
+    return `Current no-show baseline is ${snapshot.noShowRate}%. The strongest signal is lead time: ${persona.bucket} has the highest risk at ${toPct(persona.bucketRate)}. Reminder coverage is ${toPct(persona.smsCoverage)}, so the most practical lever is increasing reminder intensity for long-wait bookings first.`;
   }
 
   if (text.includes("satisfaction") || text.includes("experience") || text.includes("csat")) {
-    return `On patient experience, satisfaction is being pulled by severity and anxiety signals in your model. Practical move: pair clinical follow-up with expectation-setting and reassurance scripts for higher-acuity patients, so experience quality improves alongside outcomes.`;
+    return `On patient experience, satisfaction is being pulled by severity and anxiety signals in your model. The practical move is pairing clinical follow-up with expectation-setting and reassurance scripts for higher-acuity patients so experience improves alongside outcomes.`;
   }
 
   if (text.includes("retention") || text.includes("growth") || text.includes("kpi")) {
-    return `To improve retention and growth without overcomplicating things: fix the biggest conversion gap first (${drop.from} → ${drop.to}), then track one leading KPI weekly. Right now your strongest KPI pulse is ${topKpis}.`;
+    return `To improve retention and growth without overcomplicating things, fix the biggest conversion gap first at ${drop.from} → ${drop.to}, then track one leading KPI weekly. Right now your strongest KPI pulse is ${topKpis}.`;
   }
 
-  return `I hear you. I can help with practical planning, no-show risk, funnel leaks, 30-day actions, and KPI priorities. If you want, ask me: “What should we prioritize first?” or “Give me a 30-day plan for this team.”`;
+  return `I can help with practical planning, no-show risk, funnel leaks, 30-day actions, and KPI priorities. Ask me something like “What should we prioritize first?” or “Give me a 30-day plan for this team.”`;
 }
 
 function addAnaMessage(text, role = "bot") {
   if (!anaMessagesEl) return null;
+
   const bubble = document.createElement("div");
   bubble.className = `ana-bubble ${role}`;
   bubble.textContent = text;
@@ -598,7 +716,7 @@ function initAna() {
   if (!anaToggleEl || !anaPanelEl || !anaFormEl || !anaInputEl) return;
 
   addAnaMessage(
-    "Hi, I’m Ana 👋 I’m here to help you make sense of the business quickly — ask me what’s happening, why it might be happening, and what we should do next.",
+    "Hi, I’m Ana 👋 I’m here to help you make sense of the business quickly — ask me what’s happening, why it might be happening, and what we should do next."
   );
 
   anaToggleEl.addEventListener("click", () => {
@@ -636,12 +754,17 @@ async function loadEngagementData() {
     const remote = await response.json();
     if (remote?.no_show && remote?.satisfaction) {
       engagementData = remote;
+      render();
       renderEngagement();
     }
   } catch (error) {
-    // Keep fallback values for static previews or local file opens.
+    console.warn("Using fallback engagement data.", error);
   }
 }
+
+[timeframeEl, teamEl].forEach((el) => {
+  el.addEventListener("change", render);
+});
 
 render();
 renderEngagement();
