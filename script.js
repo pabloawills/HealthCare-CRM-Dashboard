@@ -842,6 +842,7 @@ function getAnaReply(userText) {
   const text = normalizeText(userText);
   const snapshot = buildBusinessSnapshot();
   const drop = findLargestJourneyDrop(snapshot.selected.journey);
+  const focusTeam = formatTeamName(snapshot.team);
   const persona = getNoShowPersona(snapshot);
   const topKpis = getTopKpiSummary(snapshot.selected);
   const focusStage = `${drop.from} → ${drop.to}`;
@@ -871,12 +872,17 @@ function getAnaReply(userText) {
 
   if ((asksWhyOnly || asksNextOnly) && anaState.lastIntent) {
     if (anaState.lastIntent === "priority" || anaState.lastIntent === "strategy") {
-      updateAnaState("follow_up_next", snapshot, focusStage, snapshot.northStarKpi);
+      if (asksWhyOnly) {
+        updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
+        return `Because ${focusStage} is your largest measurable leak (${drop.drop} lost patients), improving this handoff usually lifts outcomes faster than broad campaigns.`;
+      }
+
+      updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
       return `Next step: run a focused 2-step reminder + same-day outreach sequence on ${focusStage} for two weeks, then measure impact on ${snapshot.northStarKpi}.`;
     }
 
     if (anaState.lastIntent === "status" || anaState.lastIntent === "leak") {
-      updateAnaState("follow_up_why", snapshot, focusStage, snapshot.northStarKpi);
+      updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
       return `Because ${focusStage} is where intent meets friction: longer wait windows, weaker confirmations, and scheduling delays. That combination usually creates the largest avoidable leakage.`;
     }
   }
@@ -886,12 +892,14 @@ function getAnaReply(userText) {
     (text.includes("what") || text.includes("which")) &&
     !text.includes("status") &&
     !text.includes("priority") &&
+    !text.includes("prioritize") &&
+    !text.includes("happening") &&
+    !text.includes("what next") &&
     !text.includes("leak")
   ) {
     return "I can narrow this down quickly. Do you want current status, biggest leak, or top priority?";
   }
 
-  if (asksNoShowPatientType) {
   if (asksNoShowPatientType) {
     updateAnaState("no_show_risk", snapshot, focusStage, "No-show rate");
     return formatAnaResponse({
@@ -918,7 +926,13 @@ function getAnaReply(userText) {
     });
   }
 
-  if (text.includes("priority") || text.includes("first") || text.includes("where should")) {
+  if (
+    text.includes("priority") ||
+    text.includes("prioritize") ||
+    text.includes("first") ||
+    text.includes("where should") ||
+    text.includes("what next")
+  ) {
     updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
     return formatAnaResponse({
       snapshot,
@@ -944,7 +958,15 @@ function getAnaReply(userText) {
     });
   }
 
-  if (text.includes("scenario") || text.includes("current") || text.includes("status") || text.includes("how are we doing")) {
+  if (
+    text.includes("scenario") ||
+    text.includes("current") ||
+    text.includes("status") ||
+    text.includes("how are we doing") ||
+    text.includes("what s happening") ||
+    text.includes("whats happening") ||
+    text.includes("happening")
+  ) {
     updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
     return formatAnaResponse({
       snapshot,
@@ -1009,6 +1031,7 @@ function getAnaReply(userText) {
     });
   }
 
+  updateAnaState("fallback", snapshot, focusStage, snapshot.northStarKpi);
   return getContextualFallback(snapshot);
 }
 
