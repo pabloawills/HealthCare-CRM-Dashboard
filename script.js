@@ -787,6 +787,97 @@ function normalizeText(text) {
     .trim();
 }
 
+const ANA_INTENT_TEST_PHRASES = {
+  status_overview: ["what's happening", "how are things", "current status"],
+  priority_next: ["prioritize next", "focus now", "top priority"],
+  funnel_drop_why: ["why are we dropping", "where is the funnel leak", "conversion drop reason"],
+  no_show_risk: ["who is likely to no-show", "attendance risk", "high risk no show patients"],
+  thirty_day_plan: ["30 day plan", "next month plan", "action plan"],
+  kpi_trend: ["kpi trend", "retention trend", "growth metrics pulse"]
+};
+
+function classifyAnaIntent(text) {
+  const patterns = [
+    {
+      intent: "status_overview",
+      checks: [
+        ["what", "happening"],
+        ["how", "things"],
+        ["how", "doing"],
+        ["current", "status"],
+        ["status", "overview"],
+        ["scenario"],
+        ["where", "stand"]
+      ]
+    },
+    {
+      intent: "priority_next",
+      checks: [
+        ["prioritize", "next"],
+        ["focus", "now"],
+        ["top", "priority"],
+        ["priority"],
+        ["where", "should"],
+        ["what", "first"],
+        ["highest", "impact"]
+      ]
+    },
+    {
+      intent: "funnel_drop_why",
+      checks: [
+        ["why", "drop"],
+        ["why", "leak"],
+        ["funnel", "drop"],
+        ["funnel", "leak"],
+        ["conversion", "drop"],
+        ["drop", "off"]
+      ]
+    },
+    {
+      intent: "no_show_risk",
+      checks: [
+        ["no", "show"],
+        ["not", "show"],
+        ["miss", "appointment"],
+        ["attendance", "risk"],
+        ["likely", "risk"],
+        ["high", "risk"]
+      ]
+    },
+    {
+      intent: "thirty_day_plan",
+      checks: [
+        ["30", "days"],
+        ["30", "day"],
+        ["next", "month"],
+        ["action", "plan"],
+        ["month", "plan"]
+      ]
+    },
+    {
+      intent: "kpi_trend",
+      checks: [
+        ["kpi", "trend"],
+        ["kpi"],
+        ["retention"],
+        ["growth"],
+        ["trend"],
+        ["performance"],
+        ["improve"]
+      ]
+    }
+  ];
+
+  for (const { intent, checks } of patterns) {
+    const matches = checks.some((tokens) => tokens.every((token) => text.includes(token)));
+    if (matches) {
+      return intent;
+    }
+  }
+
+  return null;
+}
+
 function getTopKpiSummary(selected) {
   const strongest = selected.kpis
     .filter((kpi) =>
@@ -840,6 +931,7 @@ What to do next: 1) ${actions[0]} 2) ${actions[1] || actions[0]}.`;
 
 function getAnaReply(userText) {
   const text = normalizeText(userText);
+  const intent = classifyAnaIntent(text);
   const snapshot = buildBusinessSnapshot();
   const drop = findLargestJourneyDrop(snapshot.selected.journey);
   const persona = getNoShowPersona(snapshot);
@@ -891,7 +983,6 @@ function getAnaReply(userText) {
     return "I can narrow this down quickly. Do you want current status, biggest leak, or top priority?";
   }
 
-  if (asksNoShowPatientType) {
   if (asksNoShowPatientType) {
     updateAnaState("no_show_risk", snapshot, focusStage, "No-show rate");
     return formatAnaResponse({
@@ -1010,7 +1101,6 @@ function getAnaReply(userText) {
   }
 
   return getContextualFallback(snapshot);
-}
 
 function addAnaMessage(text, role = "bot") {
   if (!anaMessagesEl) return null;
