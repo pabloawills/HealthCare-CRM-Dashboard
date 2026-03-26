@@ -21,5 +21,5 @@ A lightweight, user-friendly healthcare CRM dashboard built from scratch to tell
 
 Visit here:
 
-https://pabloawills.github.io/HealthCare-CRM-Dashboard/
+https://pulsecareinsights.base44.app
 
