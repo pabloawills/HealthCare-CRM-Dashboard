@@ -91,7 +91,8 @@ body {
 .story-panel,
 .trend-panel,
 .journey-panel,
-.engagement-panel {
+.engagement-panel,
+.analytics-panel {
   background: var(--card);
   border-radius: var(--radius);
   border: 1px solid #dbe7f4;
@@ -102,7 +103,8 @@ body {
 .story-panel h2,
 .trend-panel h2,
 .journey-panel h2,
-.engagement-panel h2 {
+.engagement-panel h2,
+.analytics-panel h2 {
   margin-top: 0;
   font-size: 1.05rem;
 }
