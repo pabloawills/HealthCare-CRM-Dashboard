@@ -779,6 +779,97 @@ function normalizeText(text) {
     .trim();
 }
 
+const ANA_INTENT_TEST_PHRASES = {
+  status_overview: ["what's happening", "how are things", "current status"],
+  priority_next: ["prioritize next", "focus now", "top priority"],
+  funnel_drop_why: ["why are we dropping", "where is the funnel leak", "conversion drop reason"],
+  no_show_risk: ["who is likely to no-show", "attendance risk", "high risk no show patients"],
+  thirty_day_plan: ["30 day plan", "next month plan", "action plan"],
+  kpi_trend: ["kpi trend", "retention trend", "growth metrics pulse"]
+};
+
+function classifyAnaIntent(text) {
+  const patterns = [
+    {
+      intent: "status_overview",
+      checks: [
+        ["what", "happening"],
+        ["how", "things"],
+        ["how", "doing"],
+        ["current", "status"],
+        ["status", "overview"],
+        ["scenario"],
+        ["where", "stand"]
+      ]
+    },
+    {
+      intent: "priority_next",
+      checks: [
+        ["prioritize", "next"],
+        ["focus", "now"],
+        ["top", "priority"],
+        ["priority"],
+        ["where", "should"],
+        ["what", "first"],
+        ["highest", "impact"]
+      ]
+    },
+    {
+      intent: "funnel_drop_why",
+      checks: [
+        ["why", "drop"],
+        ["why", "leak"],
+        ["funnel", "drop"],
+        ["funnel", "leak"],
+        ["conversion", "drop"],
+        ["drop", "off"]
+      ]
+    },
+    {
+      intent: "no_show_risk",
+      checks: [
+        ["no", "show"],
+        ["not", "show"],
+        ["miss", "appointment"],
+        ["attendance", "risk"],
+        ["likely", "risk"],
+        ["high", "risk"]
+      ]
+    },
+    {
+      intent: "thirty_day_plan",
+      checks: [
+        ["30", "days"],
+        ["30", "day"],
+        ["next", "month"],
+        ["action", "plan"],
+        ["month", "plan"]
+      ]
+    },
+    {
+      intent: "kpi_trend",
+      checks: [
+        ["kpi", "trend"],
+        ["kpi"],
+        ["retention"],
+        ["growth"],
+        ["trend"],
+        ["performance"],
+        ["improve"]
+      ]
+    }
+  ];
+
+  for (const { intent, checks } of patterns) {
+    const matches = checks.some((tokens) => tokens.every((token) => text.includes(token)));
+    if (matches) {
+      return intent;
+    }
+  }
+
+  return null;
+}
+
 function getTopKpiSummary(selected) {
   const strongest = selected.kpis
     .filter((kpi) =>
@@ -793,6 +884,7 @@ function getTopKpiSummary(selected) {
 
 function getAnaReply(userText) {
   const text = normalizeText(userText);
+  const intent = classifyAnaIntent(text);
   const snapshot = buildBusinessSnapshot();
   const drop = findLargestJourneyDrop(snapshot.selected.journey);
   const focusTeam = formatTeamName(snapshot.team);
@@ -804,43 +896,25 @@ function getAnaReply(userText) {
     (text.includes("likely") || text.includes("risk") || text.includes("high risk")) &&
     (text.includes("no show") || text.includes("not show") || text.includes("miss appointment"));
 
-  if (asksNoShowPatientType) {
-    return `That’s a very good question. From this data, the highest-risk patient pattern is behavioral: people booked ${persona.bucket} in advance show the highest no-show risk at ${toPct(persona.bucketRate)}. Longer wait windows create more schedule conflicts, motivation drops over time, and reminder coverage is still only ${toPct(persona.smsCoverage)}. So the riskiest profile here is long-lead appointments plus weaker reminder reach, not one specific diagnosis group.`;
+  switch (intent) {
+    case "status_overview":
+      return `In the ${snapshot.timeframe} ${focusTeam} view, the target is ${snapshot.selected.goal}. Biggest funnel gap is ${drop.from} → ${drop.to} with ${drop.conversion}% conversion, and no-show baseline is ${snapshot.noShowRate}%. Quick pulse: solid momentum, but fixing that stage should unlock the clearest gains.`;
+    case "priority_next":
+      return `If you want the highest-impact first move, focus on ${drop.from} → ${drop.to}. It’s your largest drop with ${drop.drop} patients lost. A focused reminder and same-day outreach sequence here will usually outperform broad campaigns.`;
+    case "funnel_drop_why":
+      return `If we look at the funnel, the main leak is ${drop.from} → ${drop.to}. Usually this is where intent is still high but follow-through gets harder because of timing friction, unanswered reminders, or scheduling delays. I’d treat this as an operations gap more than a demand problem.`;
+    case "no_show_risk":
+      if (asksNoShowPatientType) {
+        return `That’s a very good question. From this data, the highest-risk patient pattern is behavioral: people booked ${persona.bucket} in advance show the highest no-show risk at ${toPct(persona.bucketRate)}. Longer wait windows create more schedule conflicts, motivation drops over time, and reminder coverage is still only ${toPct(persona.smsCoverage)}. So the riskiest profile here is long-lead appointments plus weaker reminder reach, not one specific diagnosis group.`;
+      }
+      return `Current no-show baseline is ${snapshot.noShowRate}%. The strongest signal is lead time: ${persona.bucket} has the highest risk at ${toPct(persona.bucketRate)}. Reminder coverage is ${toPct(persona.smsCoverage)}, so the most practical lever is increasing reminder intensity for long-wait bookings first.`;
+    case "thirty_day_plan":
+      return `Here’s a practical 30-day plan: Week 1, flag all ${persona.bucket} bookings as high-risk and add 2-step reminders. Week 2, escalate non-confirmed appointments to a call queue. Week 3, test one script variation by team. Week 4, review ${snapshot.northStarKpi} plus no-show trend and keep only what improved outcomes.`;
+    case "kpi_trend":
+      return `To improve retention and growth without overcomplicating things, fix the biggest conversion gap first at ${drop.from} → ${drop.to}, then track one leading KPI weekly. Right now your strongest KPI pulse is ${topKpis}.`;
+    default:
+      return `I can help with practical planning, no-show risk, funnel leaks, 30-day actions, and KPI priorities. Ask me something like “What should we prioritize first?” or “Give me a 30-day plan for this team.”`;
   }
-
-  if (text.includes("why") && (text.includes("drop") || text.includes("leak") || text.includes("conversion"))) {
-    return `If we look at the funnel, the main leak is ${drop.from} → ${drop.to}. Usually this is where intent is still high but follow-through gets harder because of timing friction, unanswered reminders, or scheduling delays. I’d treat this as an operations gap more than a demand problem.`;
-  }
-
-  if (text.includes("priority") || text.includes("first") || text.includes("where should")) {
-    return `If you want the highest-impact first move, focus on ${drop.from} → ${drop.to}. It’s your largest drop with ${drop.drop} patients lost. A focused reminder and same-day outreach sequence here will usually outperform broad campaigns.`;
-  }
-
-  if (text.includes("30 days") || text.includes("next month") || text.includes("action plan")) {
-    return `Here’s a practical 30-day plan: Week 1, flag all ${persona.bucket} bookings as high-risk and add 2-step reminders. Week 2, escalate non-confirmed appointments to a call queue. Week 3, test one script variation by team. Week 4, review ${snapshot.northStarKpi} plus no-show trend and keep only what improved outcomes.`;
-  }
-
-  if (text.includes("scenario") || text.includes("current") || text.includes("status") || text.includes("how are we doing")) {
-    return `In the ${snapshot.timeframe} ${focusTeam} view, the target is ${snapshot.selected.goal}. Biggest funnel gap is ${drop.from} → ${drop.to} with ${drop.conversion}% conversion, and no-show baseline is ${snapshot.noShowRate}%. Quick pulse: solid momentum, but fixing that stage should unlock the clearest gains.`;
-  }
-
-  if (text.includes("strategy") || text.includes("strategies") || text.includes("plan") || text.includes("improve") || text.includes("help")) {
-    return `I’d keep this simple and practical: first, defend the ${drop.from} → ${drop.to} stage with tighter reminder cadences; second, give long-lead bookings averaging ${snapshot.noShow.avg_lead_days.toFixed(1)} days extra confirmation touches; third, run a weekly checkpoint on ${snapshot.northStarKpi}. That gives fast learning without overwhelming the team.`;
-  }
-
-  if (text.includes("no show") || text.includes("attendance")) {
-    return `Current no-show baseline is ${snapshot.noShowRate}%. The strongest signal is lead time: ${persona.bucket} has the highest risk at ${toPct(persona.bucketRate)}. Reminder coverage is ${toPct(persona.smsCoverage)}, so the most practical lever is increasing reminder intensity for long-wait bookings first.`;
-  }
-
-  if (text.includes("satisfaction") || text.includes("experience") || text.includes("csat")) {
-    return `On patient experience, satisfaction is being pulled by severity and anxiety signals in your model. The practical move is pairing clinical follow-up with expectation-setting and reassurance scripts for higher-acuity patients so experience improves alongside outcomes.`;
-  }
-
-  if (text.includes("retention") || text.includes("growth") || text.includes("kpi")) {
-    return `To improve retention and growth without overcomplicating things, fix the biggest conversion gap first at ${drop.from} → ${drop.to}, then track one leading KPI weekly. Right now your strongest KPI pulse is ${topKpis}.`;
-  }
-
-  return `I can help with practical planning, no-show risk, funnel leaks, 30-day actions, and KPI priorities. Ask me something like “What should we prioritize first?” or “Give me a 30-day plan for this team.”`;
 }
 
 function addAnaMessage(text, role = "bot") {
