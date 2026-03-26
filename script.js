@@ -1,20 +1,30 @@
 const data = {
   monthly: {
     all: {
-      goal: "Retention +6.4%",
+      goal: "No-show rate 18.5% (Jun 2016)",
       kpis: [
-        { label: "New patients", value: 184, delta: 12, deltaSuffix: "%" },
         {
-          label: "Follow-up completion",
-          value: "88%",
-          delta: 6.4,
+          label: "Appointments analyzed",
+          value: "110,516",
+          delta: 0,
+          deltaSuffix: "%"
+        },
+        {
+          label: "No-show rate (Jun 2016)",
+          value: "18.5%",
+          delta: -2.3,
           deltaSuffix: " pts"
         },
-        { label: "No-show rate", value: "9%", delta: -2.1, deltaSuffix: " pts" },
         {
-          label: "Satisfaction score",
-          value: "4.7/5",
-          delta: 0.3,
+          label: "SMS reminder coverage",
+          value: "32.1%",
+          delta: 0,
+          deltaSuffix: " pts"
+        },
+        {
+          label: "Avg satisfaction",
+          value: "65.5/100",
+          delta: 0,
           deltaSuffix: " pts"
         }
       ],
@@ -34,26 +44,31 @@ const data = {
       ]
     },
     "care-coordination": {
-      goal: "Readmission risk -1.4%",
+      goal: "Complex Risk segment profile",
       kpis: [
-        { label: "Care plans updated", value: 132, delta: 14, deltaSuffix: "%" },
         {
-          label: "Medication adherence",
-          value: "81%",
-          delta: 4.2,
+          label: "Patients in segment",
+          value: "10,243",
+          delta: 0,
+          deltaSuffix: "%"
+        },
+        {
+          label: "Avg length of stay",
+          value: "22.6 days",
+          delta: 0,
+          deltaSuffix: "d"
+        },
+        {
+          label: "Emergency rate",
+          value: "33.7%",
+          delta: 0,
           deltaSuffix: " pts"
         },
         {
-          label: "Readmission risk",
-          value: "7%",
-          delta: -1.4,
-          deltaSuffix: " pts"
-        },
-        {
-          label: "Patient trust score",
-          value: "4.8/5",
-          delta: 0.2,
-          deltaSuffix: " pts"
+          label: "Avg billing per patient",
+          value: "$35,215",
+          delta: 0,
+          deltaSuffix: "%"
         }
       ],
       journey: [
@@ -72,17 +87,32 @@ const data = {
       ]
     },
     outreach: {
-      goal: "Lead-to-visit +3.4%",
+      goal: "Low-Touch Preventive segment profile",
       kpis: [
-        { label: "Outreach campaigns", value: 24, delta: 7, deltaSuffix: "%" },
-        { label: "Response rate", value: "46%", delta: 5.1, deltaSuffix: " pts" },
         {
-          label: "Lead-to-visit conversion",
-          value: "31%",
-          delta: 3.4,
+          label: "Patients in segment",
+          value: "9,822",
+          delta: 0,
+          deltaSuffix: "%"
+        },
+        {
+          label: "Abnormal test rate",
+          value: "33.1%",
+          delta: 0,
           deltaSuffix: " pts"
         },
-        { label: "First-visit NPS", value: "59", delta: 5, deltaSuffix: " pts" }
+        {
+          label: "Avg visits",
+          value: "1.37",
+          delta: 0,
+          deltaSuffix: " pts"
+        },
+        {
+          label: "Avg billing per patient",
+          value: "$34,933",
+          delta: 0,
+          deltaSuffix: "%"
+        }
       ],
       journey: [
         { stage: "Contacted", value: 1130 },
@@ -100,27 +130,32 @@ const data = {
       ]
     },
     support: {
-      goal: "Resolution time -1.3h",
+      goal: "Stable Regulars segment profile",
       kpis: [
         {
-          label: "Open support tickets",
-          value: 41,
-          delta: -9,
+          label: "Patients in segment",
+          value: "10,075",
+          delta: 0,
           deltaSuffix: "%"
         },
         {
-          label: "Avg. resolution time",
-          value: "6.1h",
-          delta: -1.3,
-          deltaSuffix: "h"
-        },
-        {
-          label: "Self-service usage",
-          value: "38%",
-          delta: 8.2,
+          label: "Avg visits",
+          value: "1.38",
+          delta: 0,
           deltaSuffix: " pts"
         },
-        { label: "Support CSAT", value: "93%", delta: 2.4, deltaSuffix: " pts" }
+        {
+          label: "Abnormal test rate",
+          value: "33.8%",
+          delta: 0,
+          deltaSuffix: " pts"
+        },
+        {
+          label: "Avg billing per patient",
+          value: "$35,206",
+          delta: 0,
+          deltaSuffix: "%"
+        }
       ],
       journey: [
         { stage: "Incoming", value: 190 },
@@ -140,20 +175,30 @@ const data = {
   },
   quarterly: {
     all: {
-      goal: "Retention +8.8%",
+      goal: "Billing trend next 6 months: down",
       kpis: [
-        { label: "New patients", value: 542, delta: 18, deltaSuffix: "%" },
         {
-          label: "Follow-up completion",
-          value: "86%",
-          delta: 8.8,
-          deltaSuffix: " pts"
+          label: "Records analyzed",
+          value: "55,500",
+          delta: 0,
+          deltaSuffix: "%"
         },
-        { label: "No-show rate", value: "11%", delta: -3.4, deltaSuffix: " pts" },
         {
-          label: "Satisfaction score",
-          value: "4.6/5",
-          delta: 0.5,
+          label: "Total billing",
+          value: "$1.42B",
+          delta: 0,
+          deltaSuffix: "%"
+        },
+        {
+          label: "Avg billing / admission",
+          value: "$25,539",
+          delta: 0,
+          deltaSuffix: "%"
+        },
+        {
+          label: "Billing MAPE (last 6)",
+          value: "56.51%",
+          delta: 0,
           deltaSuffix: " pts"
         }
       ],
@@ -173,25 +218,30 @@ const data = {
       ]
     },
     "care-coordination": {
-      goal: "Adherence +6.7%",
+      goal: "Forecast operational outlook",
       kpis: [
-        { label: "Care plans updated", value: 403, delta: 19, deltaSuffix: "%" },
         {
-          label: "Medication adherence",
-          value: "79%",
-          delta: 6.7,
+          label: "Next 6-month admissions",
+          value: "916.7",
+          delta: -0.8,
           deltaSuffix: " pts"
         },
         {
-          label: "Readmission risk",
-          value: "8%",
-          delta: -2.5,
+          label: "Next 6-month billing",
+          value: "$23.42M",
+          delta: -0.11,
           deltaSuffix: " pts"
         },
         {
-          label: "Patient trust score",
-          value: "4.7/5",
-          delta: 0.4,
+          label: "Admissions MAPE (last 6)",
+          value: "56.61%",
+          delta: 0,
+          deltaSuffix: " pts"
+        },
+        {
+          label: "Billing MAPE (last 6)",
+          value: "56.51%",
+          delta: 0,
           deltaSuffix: " pts"
         }
       ],
@@ -211,17 +261,32 @@ const data = {
       ]
     },
     outreach: {
-      goal: "Response +7.2%",
+      goal: "Top billing drivers (categorical effects)",
       kpis: [
-        { label: "Outreach campaigns", value: 73, delta: 13, deltaSuffix: "%" },
-        { label: "Response rate", value: "43%", delta: 7.2, deltaSuffix: " pts" },
         {
-          label: "Lead-to-visit conversion",
-          value: "29%",
-          delta: 4.1,
+          label: "Medical condition effect",
+          value: "153.68",
+          delta: 0,
           deltaSuffix: " pts"
         },
-        { label: "First-visit NPS", value: "56", delta: 7, deltaSuffix: " pts" }
+        {
+          label: "Medication effect",
+          value: "100.66",
+          delta: 0,
+          deltaSuffix: " pts"
+        },
+        {
+          label: "Insurance provider effect",
+          value: "65.69",
+          delta: 0,
+          deltaSuffix: " pts"
+        },
+        {
+          label: "Admission type effect",
+          value: "42.29",
+          delta: 0,
+          deltaSuffix: " pts"
+        }
       ],
       journey: [
         { stage: "Contacted", value: 3490 },
@@ -239,27 +304,32 @@ const data = {
       ]
     },
     support: {
-      goal: "CSAT +3.7%",
+      goal: "Satisfaction model quality",
       kpis: [
         {
-          label: "Open support tickets",
-          value: 126,
-          delta: -15,
+          label: "Satisfaction records",
+          value: "25",
+          delta: 0,
           deltaSuffix: "%"
         },
         {
-          label: "Avg. resolution time",
-          value: "6.5h",
-          delta: -2.2,
-          deltaSuffix: "h"
-        },
-        {
-          label: "Self-service usage",
-          value: "34%",
-          delta: 10.4,
+          label: "High satisfaction ratio",
+          value: "44.0%",
+          delta: 0,
           deltaSuffix: " pts"
         },
-        { label: "Support CSAT", value: "91%", delta: 3.7, deltaSuffix: " pts" }
+        {
+          label: "Satisfaction model MAPE",
+          value: "7.98%",
+          delta: 0,
+          deltaSuffix: " pts"
+        },
+        {
+          label: "Anxiety coefficient",
+          value: "1.306",
+          delta: 0,
+          deltaSuffix: " pts"
+        }
       ],
       journey: [
         { stage: "Incoming", value: 620 },
@@ -307,6 +377,26 @@ const engagementFallback = {
 };
 
 let engagementData = engagementFallback;
+const analyticsFallback = {
+  feature_importance: {
+    numeric_correlations_with_billing: {},
+    categorical_effect_on_billing: {}
+  },
+  segment_profiles: {},
+  forecast: {
+    admissions_mape_last_6: 0,
+    billing_mape_last_6: 0,
+    next_6_month_admissions_forecast: [],
+    next_6_month_billing_forecast: []
+  }
+};
+const strategyFallback = {
+  segment_strategies: {},
+  global_signals: {}
+};
+
+let analyticsData = analyticsFallback;
+let strategyData = strategyFallback;
 
 const timeframeEl = document.getElementById("timeframe");
 const teamEl = document.getElementById("team");
@@ -321,6 +411,12 @@ const trendInsightEl = document.getElementById("trendInsight");
 const engagementKpisEl = document.getElementById("engagementKpis");
 const leadRiskListEl = document.getElementById("leadRiskList");
 const satisfactionSignalsEl = document.getElementById("satisfactionSignals");
+const noShowDriversEl = document.getElementById("noShowDrivers");
+const satisfactionModelEl = document.getElementById("satisfactionModel");
+const analyticsKpisEl = document.getElementById("analyticsKpis");
+const featureImportanceListEl = document.getElementById("featureImportanceList");
+const forecastListEl = document.getElementById("forecastList");
+const segmentProfilesEl = document.getElementById("segmentProfiles");
 const anaToggleEl = document.getElementById("anaToggle");
 const anaPanelEl = document.getElementById("anaPanel");
 const anaMessagesEl = document.getElementById("anaMessages");
@@ -352,6 +448,14 @@ function getDesiredTrendDirection(kpiLabel) {
 
 function toPct(value) {
   return `${(value * 100).toFixed(1)}%`;
+}
+
+function toMoney(value) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0
+  }).format(value);
 }
 
 function formatDelta(kpi) {
@@ -479,6 +583,8 @@ function renderEngagement() {
     !engagementKpisEl ||
     !leadRiskListEl ||
     !satisfactionSignalsEl ||
+    !noShowDriversEl ||
+    !satisfactionModelEl ||
     !noShow ||
     !satisfaction
   ) {
@@ -543,6 +649,42 @@ function renderEngagement() {
     const li = document.createElement("li");
     li.textContent = text;
     satisfactionSignalsEl.appendChild(li);
+  });
+
+  noShowDriversEl.innerHTML = "";
+  Object.entries(noShow.correlation_with_no_show || {}).forEach(([label, corr]) => {
+    const li = document.createElement("li");
+    li.textContent = `${label}: correlation ${Number(corr).toFixed(3)} with no-show behavior.`;
+    noShowDriversEl.appendChild(li);
+  });
+
+  const monthlyRates = Object.entries(noShow.monthly_no_show_rate || {})
+    .map(([month, rate]) => `${month} ${toPct(rate)}`)
+    .join(" · ");
+
+  if (monthlyRates) {
+    const li = document.createElement("li");
+    li.textContent = `Monthly no-show trend sample: ${monthlyRates}.`;
+    noShowDriversEl.appendChild(li);
+  }
+
+  satisfactionModelEl.innerHTML = "";
+  const model = satisfaction.linear_model || {};
+
+  [
+    `Model intercept: ${(model.intercept ?? 0).toFixed(2)}.`,
+    `Model MAPE: ${(model.mape ?? 0).toFixed(2)}%.`,
+    `Satisfaction records used: ${(satisfaction.records ?? 0).toLocaleString()}.`
+  ].forEach((line) => {
+    const li = document.createElement("li");
+    li.textContent = line;
+    satisfactionModelEl.appendChild(li);
+  });
+
+  Object.entries(model.coefficients || {}).forEach(([label, value]) => {
+    const li = document.createElement("li");
+    li.textContent = `${label} coefficient: ${Number(value).toFixed(3)}.`;
+    satisfactionModelEl.appendChild(li);
   });
 }
 
@@ -746,6 +888,110 @@ function initAna() {
   });
 }
 
+function renderAnalytics() {
+  if (
+    !analyticsKpisEl ||
+    !featureImportanceListEl ||
+    !forecastListEl ||
+    !segmentProfilesEl
+  ) {
+    return;
+  }
+
+  const featureImportance = analyticsData.feature_importance || {};
+  const numeric = featureImportance.numeric_correlations_with_billing || {};
+  const categorical = featureImportance.categorical_effect_on_billing || {};
+  const forecast = analyticsData.forecast || {};
+  const globalSignals = strategyData.global_signals || {};
+
+  analyticsKpisEl.innerHTML = "";
+  [
+    {
+      label: "Admissions MAPE (last 6)",
+      value: `${Number(forecast.admissions_mape_last_6 || 0).toFixed(2)}%`,
+      note: "Lower is better forecast accuracy"
+    },
+    {
+      label: "Billing MAPE (last 6)",
+      value: `${Number(forecast.billing_mape_last_6 || 0).toFixed(2)}%`,
+      note: "Lower is better forecast accuracy"
+    },
+    {
+      label: "Admissions trend signal",
+      value: (globalSignals.admissions_trend_next_6m || "n/a").toUpperCase(),
+      note: "From strategy rules"
+    },
+    {
+      label: "Billing trend signal",
+      value: (globalSignals.billing_trend_next_6m || "n/a").toUpperCase(),
+      note: "From strategy rules"
+    }
+  ].forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "kpi-card";
+    card.innerHTML = `
+      <h3>${item.label}</h3>
+      <div class="kpi-value">${item.value}</div>
+      <div class="kpi-delta">${item.note}</div>
+    `;
+    analyticsKpisEl.appendChild(card);
+  });
+
+  featureImportanceListEl.innerHTML = "";
+  Object.entries(numeric).forEach(([feature, corr]) => {
+    const li = document.createElement("li");
+    li.textContent = `${feature}: correlation ${Number(corr).toFixed(4)} with billing.`;
+    featureImportanceListEl.appendChild(li);
+  });
+  Object.entries(categorical).forEach(([feature, score]) => {
+    const li = document.createElement("li");
+    li.textContent = `${feature}: categorical effect score ${Number(score).toFixed(2)}.`;
+    featureImportanceListEl.appendChild(li);
+  });
+
+  forecastListEl.innerHTML = "";
+  const nextAdmissions = (forecast.next_6_month_admissions_forecast || [])
+    .map((v) => Number(v).toFixed(1))
+    .join(", ");
+  const nextBilling = (forecast.next_6_month_billing_forecast || [])
+    .map((v) => toMoney(Number(v)))
+    .join(", ");
+
+  [
+    `Next 6-month admissions forecast: [${nextAdmissions}]`,
+    `Next 6-month billing forecast: [${nextBilling}]`
+  ].forEach((line) => {
+    const li = document.createElement("li");
+    li.textContent = line;
+    forecastListEl.appendChild(li);
+  });
+
+  segmentProfilesEl.innerHTML = "";
+  const profiles = analyticsData.segment_profiles || {};
+  const strategies = strategyData.segment_strategies || {};
+
+  Object.entries(profiles).forEach(([segmentName, profile]) => {
+    const card = document.createElement("article");
+    card.className = "conversion-item";
+
+    const strategyItems = (strategies[segmentName] || [])
+      .map((item) => `<li>${item}</li>`)
+      .join("");
+
+    card.innerHTML = `
+      <h3>${segmentName}</h3>
+      <p><strong>${(profile.count || 0).toLocaleString()}</strong> patients</p>
+      <p>Avg age ${Number(profile.avg_age || 0).toFixed(1)} · Avg visits ${Number(profile.avg_visits || 0).toFixed(2)}</p>
+      <p>Avg billing ${toMoney(Number(profile.avg_billing || 0))} · Avg LOS ${Number(profile.avg_length_of_stay || 0).toFixed(1)} days</p>
+      <p>Emergency ${(Number(profile.emergency_rate || 0) * 100).toFixed(1)}% · Abnormal tests ${(Number(profile.abnormal_test_rate || 0) * 100).toFixed(1)}%</p>
+      <p>Top conditions: ${(profile.top_conditions || []).join(", ") || "N/A"}</p>
+      <ul class="action-list">${strategyItems || "<li>No strategy rule available.</li>"}</ul>
+    `;
+
+    segmentProfilesEl.appendChild(card);
+  });
+}
+
 async function loadEngagementData() {
   try {
     const response = await fetch("outputs/engagement_metrics.json");
@@ -762,11 +1008,40 @@ async function loadEngagementData() {
   }
 }
 
+async function loadAnalyticsData() {
+  try {
+    const [snapshotResponse, strategyResponse] = await Promise.all([
+      fetch("outputs/metrics_snapshot.json"),
+      fetch("outputs/strategy_rules.json")
+    ]);
+
+    if (snapshotResponse.ok) {
+      const snapshot = await snapshotResponse.json();
+      if (snapshot?.feature_importance && snapshot?.segment_profiles && snapshot?.forecast) {
+        analyticsData = snapshot;
+      }
+    }
+
+    if (strategyResponse.ok) {
+      const strategy = await strategyResponse.json();
+      if (strategy?.segment_strategies || strategy?.global_signals) {
+        strategyData = strategy;
+      }
+    }
+
+    renderAnalytics();
+  } catch (error) {
+    console.warn("Using fallback analytics data.", error);
+  }
+}
+
 [timeframeEl, teamEl].forEach((el) => {
   el.addEventListener("change", render);
 });
 
 render();
 renderEngagement();
+renderAnalytics();
 initAna();
 loadEngagementData();
+loadAnalyticsData();

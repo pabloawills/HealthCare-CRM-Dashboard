@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PulseCare CRM Dashboard</title>
+    <title>PulseCare Insights</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -11,10 +11,10 @@
     <header class="hero">
       <div>
         <p class="eyebrow">Healthcare CRM</p>
-        <h1>PulseCare: KPI Stories Across the Patient Journey</h1>
+        <h1>PulseCare Insights: KPI Stories Across the Patient Journey</h1>
         <p>
           See how awareness turns into visits, visits become active care, and
-          care leads to better outcomes.
+          care leads to better outcomes across the official PulseCare Insights app.
         </p>
       </div>
       <div class="hero-badge" aria-label="Current quarter status">
@@ -78,7 +78,34 @@
             <h3>Satisfaction model signals</h3>
             <ul id="satisfactionSignals" class="action-list"></ul>
           </article>
+          <article>
+            <h3>No-show correlation drivers</h3>
+            <ul id="noShowDrivers" class="action-list"></ul>
+          </article>
+          <article>
+            <h3>Satisfaction model details</h3>
+            <ul id="satisfactionModel" class="action-list"></ul>
+          </article>
         </div>
+      </section>
+
+      <section class="analytics-panel" aria-label="Advanced analytics metrics">
+        <h2>Advanced analytics metrics</h2>
+        <div id="analyticsKpis" class="engagement-kpi-grid"></div>
+        <div class="engagement-split">
+          <article>
+            <h3>Billing feature importance</h3>
+            <ul id="featureImportanceList" class="action-list"></ul>
+          </article>
+          <article>
+            <h3>6-month forecast outlook</h3>
+            <ul id="forecastList" class="action-list"></ul>
+          </article>
+        </div>
+        <article>
+          <h3>Segment profiles and strategies</h3>
+          <div id="segmentProfiles" class="conversion-summary"></div>
+        </article>
       </section>
     </main>
 
