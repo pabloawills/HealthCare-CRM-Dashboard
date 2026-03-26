@@ -418,6 +418,14 @@ const featureImportanceListEl = document.getElementById("featureImportanceList")
 const forecastListEl = document.getElementById("forecastList");
 const segmentProfilesEl = document.getElementById("segmentProfiles");
 
+const anaState = {
+  lastIntent: null,
+  lastFocusStage: null,
+  lastKpi: null,
+  lastTeam: null,
+  lastTimeframe: null
+};
+
 function formatTeamName(team) {
   if (team === "all") return "Cross-team view";
   return team
@@ -683,6 +691,166 @@ function renderEngagement() {
   });
 }
 
+function renderAnalytics() {
+  if (
+    !analyticsKpisEl ||
+    !featureImportanceListEl ||
+    !forecastListEl ||
+    !segmentProfilesEl
+  ) {
+    return;
+  }
+
+  const featureImportance = analyticsData.feature_importance || {};
+  const numeric = featureImportance.numeric_correlations_with_billing || {};
+  const categorical = featureImportance.categorical_effect_on_billing || {};
+  const forecast = analyticsData.forecast || {};
+  const globalSignals = strategyData.global_signals || {};
+
+  analyticsKpisEl.innerHTML = "";
+  [
+    {
+      label: "Admissions MAPE (last 6)",
+      value: `${Number(forecast.admissions_mape_last_6 || 0).toFixed(2)}%`,
+      note: "Lower is better forecast accuracy"
+    },
+    {
+      label: "Billing MAPE (last 6)",
+      value: `${Number(forecast.billing_mape_last_6 || 0).toFixed(2)}%`,
+      note: "Lower is better forecast accuracy"
+    },
+    {
+      label: "Admissions trend signal",
+      value: (globalSignals.admissions_trend_next_6m || "n/a").toUpperCase(),
+      note: "From strategy rules"
+    },
+    {
+      label: "Billing trend signal",
+      value: (globalSignals.billing_trend_next_6m || "n/a").toUpperCase(),
+      note: "From strategy rules"
+    }
+  ].forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "kpi-card";
+    card.innerHTML = `
+      <h3>${item.label}</h3>
+      <div class="kpi-value">${item.value}</div>
+      <div class="kpi-delta">${item.note}</div>
+    `;
+    analyticsKpisEl.appendChild(card);
+  });
+
+  featureImportanceListEl.innerHTML = "";
+  Object.entries(numeric).forEach(([feature, corr]) => {
+    const li = document.createElement("li");
+    li.textContent = `${feature}: correlation ${Number(corr).toFixed(4)} with billing.`;
+    featureImportanceListEl.appendChild(li);
+  });
+
+  Object.entries(categorical).forEach(([feature, score]) => {
+    const li = document.createElement("li");
+    li.textContent = `${feature}: categorical effect score ${Number(score).toFixed(2)}.`;
+    featureImportanceListEl.appendChild(li);
+  });
+
+  forecastListEl.innerHTML = "";
+  const nextAdmissions = (forecast.next_6_month_admissions_forecast || [])
+    .map((v) => Number(v).toFixed(1))
+    .join(", ");
+
+  const nextBilling = (forecast.next_6_month_billing_forecast || [])
+    .map((v) => toMoney(Number(v)))
+    .join(", ");
+
+  [
+    `Next 6-month admissions forecast: [${nextAdmissions}]`,
+    `Next 6-month billing forecast: [${nextBilling}]`
+  ].forEach((line) => {
+    const li = document.createElement("li");
+    li.textContent = line;
+    forecastListEl.appendChild(li);
+  });
+
+  segmentProfilesEl.innerHTML = "";
+  const profiles = analyticsData.segment_profiles || {};
+  const strategies = strategyData.segment_strategies || {};
+
+  Object.entries(profiles).forEach(([segmentName, profile]) => {
+    const card = document.createElement("article");
+    card.className = "conversion-item";
+
+    const strategyItems = (strategies[segmentName] || [])
+      .map((item) => `<li>${item}</li>`)
+      .join("");
+
+    card.innerHTML = `
+      <h3>${segmentName}</h3>
+      <p><strong>${(profile.count || 0).toLocaleString()}</strong> patients</p>
+      <p>Avg age ${Number(profile.avg_age || 0).toFixed(1)} · Avg visits ${Number(profile.avg_visits || 0).toFixed(2)}</p>
+      <p>Avg billing ${toMoney(Number(profile.avg_billing || 0))} · Avg LOS ${Number(profile.avg_length_of_stay || 0).toFixed(1)} days</p>
+      <p>Emergency ${(Number(profile.emergency_rate || 0) * 100).toFixed(1)}% · Abnormal tests ${(Number(profile.abnormal_test_rate || 0) * 100).toFixed(1)}%</p>
+      <p>Top conditions: ${(profile.top_conditions || []).join(", ") || "N/A"}</p>
+      <ul class="action-list">${strategyItems || "<li>No strategy rule available.</li>"}</ul>
+    `;
+
+    segmentProfilesEl.appendChild(card);
+  });
+}
+
+async function loadEngagementData() {
+  try {
+    const response = await fetch("outputs/engagement_metrics.json");
+    if (!response.ok) return;
+
+    const remote = await response.json();
+    if (remote?.no_show && remote?.satisfaction) {
+      engagementData = remote;
+      render();
+      renderEngagement();
+    }
+  } catch (error) {
+    console.warn("Using fallback engagement data.", error);
+  }
+}
+
+async function loadAnalyticsData() {
+  try {
+    const [snapshotResponse, strategyResponse] = await Promise.all([
+      fetch("outputs/metrics_snapshot.json"),
+      fetch("outputs/strategy_rules.json")
+    ]);
+
+    if (snapshotResponse.ok) {
+      const snapshot = await snapshotResponse.json();
+      if (snapshot?.feature_importance && snapshot?.segment_profiles && snapshot?.forecast) {
+        analyticsData = snapshot;
+      }
+    }
+
+    if (strategyResponse.ok) {
+      const strategy = await strategyResponse.json();
+      if (strategy?.segment_strategies || strategy?.global_signals) {
+        strategyData = strategy;
+      }
+    }
+
+    renderAnalytics();
+  } catch (error) {
+    console.warn("Using fallback analytics data.", error);
+  }
+}
+
+[timeframeEl, teamEl].forEach((el) => {
+  el.addEventListener("change", () => {
+    render();
+  });
+});
+
+render();
+renderEngagement();
+renderAnalytics();
+loadEngagementData();
+loadAnalyticsData();
 function renderAnalytics() {
   if (
     !analyticsKpisEl ||
