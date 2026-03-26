@@ -872,12 +872,17 @@ function getAnaReply(userText) {
 
   if ((asksWhyOnly || asksNextOnly) && anaState.lastIntent) {
     if (anaState.lastIntent === "priority" || anaState.lastIntent === "strategy") {
-      updateAnaState("follow_up_next", snapshot, focusStage, snapshot.northStarKpi);
+      if (asksWhyOnly) {
+        updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
+        return `Because ${focusStage} is your largest measurable leak (${drop.drop} lost patients), improving this handoff usually lifts outcomes faster than broad campaigns.`;
+      }
+
+      updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
       return `Next step: run a focused 2-step reminder + same-day outreach sequence on ${focusStage} for two weeks, then measure impact on ${snapshot.northStarKpi}.`;
     }
 
     if (anaState.lastIntent === "status" || anaState.lastIntent === "leak") {
-      updateAnaState("follow_up_why", snapshot, focusStage, snapshot.northStarKpi);
+      updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
       return `Because ${focusStage} is where intent meets friction: longer wait windows, weaker confirmations, and scheduling delays. That combination usually creates the largest avoidable leakage.`;
     }
   }
@@ -887,6 +892,9 @@ function getAnaReply(userText) {
     (text.includes("what") || text.includes("which")) &&
     !text.includes("status") &&
     !text.includes("priority") &&
+    !text.includes("prioritize") &&
+    !text.includes("happening") &&
+    !text.includes("what next") &&
     !text.includes("leak")
   ) {
     return "I can narrow this down quickly. Do you want current status, biggest leak, or top priority?";
