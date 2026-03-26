@@ -417,11 +417,6 @@ const analyticsKpisEl = document.getElementById("analyticsKpis");
 const featureImportanceListEl = document.getElementById("featureImportanceList");
 const forecastListEl = document.getElementById("forecastList");
 const segmentProfilesEl = document.getElementById("segmentProfiles");
-const anaToggleEl = document.getElementById("anaToggle");
-const anaPanelEl = document.getElementById("anaPanel");
-const anaMessagesEl = document.getElementById("anaMessages");
-const anaFormEl = document.getElementById("anaForm");
-const anaInputEl = document.getElementById("anaInput");
 
 const anaState = {
   lastIntent: null,
@@ -696,490 +691,166 @@ function renderEngagement() {
   });
 }
 
-function buildBusinessSnapshot() {
-  const timeframe = timeframeEl.value;
-  const team = teamEl.value;
-  const selected = data[timeframe][team];
-  const noShowRate = (engagementData.no_show.no_show_rate * 100).toFixed(1);
-  const followUp = selected.kpis.find((kpi) =>
-    kpi.label.toLowerCase().includes("follow-up")
-  );
-  const northStarKpi = selected.kpis?.[1]?.label || "follow-up completion";
-
-  return {
-    timeframe,
-    team,
-    selected,
-    noShowRate,
-    followUp: followUp?.value ?? "N/A",
-    noShow: engagementData.no_show,
-    satisfaction: engagementData.satisfaction,
-    northStarKpi
-  };
-}
-
-function findLargestJourneyDrop(journey) {
-  if (!Array.isArray(journey) || journey.length < 2) {
-    return {
-      from: "Unknown",
-      to: "Unknown",
-      drop: 0,
-      conversion: 0
-    };
+function renderAnalytics() {
+  if (
+    !analyticsKpisEl ||
+    !featureImportanceListEl ||
+    !forecastListEl ||
+    !segmentProfilesEl
+  ) {
+    return;
   }
 
-  let biggest = {
-    from: journey[0].stage,
-    to: journey[1].stage,
-    drop: Math.max(journey[0].value - journey[1].value, 0),
-    conversion: journey[0].value
-      ? ((journey[1].value / journey[0].value) * 100).toFixed(1)
-      : 0
-  };
-
-  for (let i = 0; i < journey.length - 1; i += 1) {
-    const from = journey[i];
-    const to = journey[i + 1];
-    const drop = Math.max(from.value - to.value, 0);
-    const conversion = from.value
-      ? ((to.value / from.value) * 100).toFixed(1)
-      : 0;
-
-    if (drop > biggest.drop) {
-      biggest = { from: from.stage, to: to.stage, drop, conversion };
-    }
-  }
-
-  return biggest;
-}
-
-function getHighestRiskLeadBucket(noShow) {
-  const buckets = Object.entries(noShow.risk_by_lead_bucket || {});
-
-  if (!buckets.length) {
-    return { label: "long-wait appointments", rate: noShow.no_show_rate || 0 };
-  }
-
-  const highest = buckets.reduce(
-    (max, current) => (current[1] > max[1] ? current : max),
-    buckets[0]
-  );
-
-  return { label: highest[0], rate: highest[1] };
-}
-
-function getNoShowPersona(snapshot) {
-  const highestRiskBucket = getHighestRiskLeadBucket(snapshot.noShow);
-
-  return {
-    bucket: highestRiskBucket.label,
-    bucketRate: highestRiskBucket.rate,
-    smsCoverage: snapshot.noShow.sms_coverage,
-    avgLeadDays: snapshot.noShow.avg_lead_days
-  };
-}
-
-function normalizeText(text) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function getTopKpiSummary(selected) {
-  const strongest = selected.kpis
-    .filter((kpi) =>
-      getDesiredTrendDirection(kpi.label) === "up" ? kpi.delta >= 0 : kpi.delta <= 0
-    )
-    .slice(0, 2)
-    .map((kpi) => `${kpi.label}: ${kpi.value}`)
-    .join(" | ");
-
-  return strongest || `${selected.kpis[0].label}: ${selected.kpis[0].value}`;
-}
-
-function updateAnaState(intent, snapshot, focusStage, kpi) {
-  anaState.lastIntent = intent;
-  anaState.lastFocusStage = focusStage || anaState.lastFocusStage;
-  anaState.lastKpi = kpi || snapshot.northStarKpi || anaState.lastKpi;
-  anaState.lastTeam = snapshot.team;
-  anaState.lastTimeframe = snapshot.timeframe;
-}
-
-function getContextualFallback(snapshot) {
-  const teamName = formatTeamName(anaState.lastTeam || snapshot.team);
-  const timeframe = anaState.lastTimeframe || snapshot.timeframe;
-  const rememberedKpi = anaState.lastKpi
-    ? ` and watch ${anaState.lastKpi}`
-    : "";
-
-  return `I can help with current status, biggest leaks, priorities, no-show risk, and a 30-day plan. For ${timeframe} ${teamName}, ask: “What’s the biggest leak right now?”${rememberedKpi}.`;
-}
-
-function getPrimaryKpiChange(selected) {
-  const withDelta = (selected.kpis || []).find((kpi) => Number(kpi.delta) !== 0);
-  const fallback = selected.kpis?.[0];
-  const metric =
-    withDelta ||
-    fallback ||
-    { label: "Primary KPI", value: "N/A", delta: 0, deltaSuffix: "" };
-
-  const directionWord = Number(metric.delta) >= 0 ? "up" : "down";
-  const deltaValue = Math.abs(Number(metric.delta || 0));
-
-  return `${metric.label} is ${metric.value} (${directionWord} ${deltaValue}${metric.deltaSuffix || ""} vs prior period)`;
-}
-
-function getAccuracyMetrics(snapshot) {
+  const featureImportance = analyticsData.feature_importance || {};
+  const numeric = featureImportance.numeric_correlations_with_billing || {};
+  const categorical = featureImportance.categorical_effect_on_billing || {};
   const forecast = analyticsData.forecast || {};
-  const model = snapshot.satisfaction?.linear_model || {};
+  const globalSignals = strategyData.global_signals || {};
 
-  return {
-    admissionsMape: Number(forecast.admissions_mape_last_6 || 0),
-    billingMape: Number(forecast.billing_mape_last_6 || 0),
-    satisfactionMape: Number(model.mape || 0),
-    records: Number(snapshot.satisfaction?.records || 0)
-  };
+  analyticsKpisEl.innerHTML = "";
+  [
+    {
+      label: "Admissions MAPE (last 6)",
+      value: `${Number(forecast.admissions_mape_last_6 || 0).toFixed(2)}%`,
+      note: "Lower is better forecast accuracy"
+    },
+    {
+      label: "Billing MAPE (last 6)",
+      value: `${Number(forecast.billing_mape_last_6 || 0).toFixed(2)}%`,
+      note: "Lower is better forecast accuracy"
+    },
+    {
+      label: "Admissions trend signal",
+      value: (globalSignals.admissions_trend_next_6m || "n/a").toUpperCase(),
+      note: "From strategy rules"
+    },
+    {
+      label: "Billing trend signal",
+      value: (globalSignals.billing_trend_next_6m || "n/a").toUpperCase(),
+      note: "From strategy rules"
+    }
+  ].forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "kpi-card";
+    card.innerHTML = `
+      <h3>${item.label}</h3>
+      <div class="kpi-value">${item.value}</div>
+      <div class="kpi-delta">${item.note}</div>
+    `;
+    analyticsKpisEl.appendChild(card);
+  });
+
+  featureImportanceListEl.innerHTML = "";
+  Object.entries(numeric).forEach(([feature, corr]) => {
+    const li = document.createElement("li");
+    li.textContent = `${feature}: correlation ${Number(corr).toFixed(4)} with billing.`;
+    featureImportanceListEl.appendChild(li);
+  });
+
+  Object.entries(categorical).forEach(([feature, score]) => {
+    const li = document.createElement("li");
+    li.textContent = `${feature}: categorical effect score ${Number(score).toFixed(2)}.`;
+    featureImportanceListEl.appendChild(li);
+  });
+
+  forecastListEl.innerHTML = "";
+  const nextAdmissions = (forecast.next_6_month_admissions_forecast || [])
+    .map((v) => Number(v).toFixed(1))
+    .join(", ");
+
+  const nextBilling = (forecast.next_6_month_billing_forecast || [])
+    .map((v) => toMoney(Number(v)))
+    .join(", ");
+
+  [
+    `Next 6-month admissions forecast: [${nextAdmissions}]`,
+    `Next 6-month billing forecast: [${nextBilling}]`
+  ].forEach((line) => {
+    const li = document.createElement("li");
+    li.textContent = line;
+    forecastListEl.appendChild(li);
+  });
+
+  segmentProfilesEl.innerHTML = "";
+  const profiles = analyticsData.segment_profiles || {};
+  const strategies = strategyData.segment_strategies || {};
+
+  Object.entries(profiles).forEach(([segmentName, profile]) => {
+    const card = document.createElement("article");
+    card.className = "conversion-item";
+
+    const strategyItems = (strategies[segmentName] || [])
+      .map((item) => `<li>${item}</li>`)
+      .join("");
+
+    card.innerHTML = `
+      <h3>${segmentName}</h3>
+      <p><strong>${(profile.count || 0).toLocaleString()}</strong> patients</p>
+      <p>Avg age ${Number(profile.avg_age || 0).toFixed(1)} · Avg visits ${Number(profile.avg_visits || 0).toFixed(2)}</p>
+      <p>Avg billing ${toMoney(Number(profile.avg_billing || 0))} · Avg LOS ${Number(profile.avg_length_of_stay || 0).toFixed(1)} days</p>
+      <p>Emergency ${(Number(profile.emergency_rate || 0) * 100).toFixed(1)}% · Abnormal tests ${(Number(profile.abnormal_test_rate || 0) * 100).toFixed(1)}%</p>
+      <p>Top conditions: ${(profile.top_conditions || []).join(", ") || "N/A"}</p>
+      <ul class="action-list">${strategyItems || "<li>No strategy rule available.</li>"}</ul>
+    `;
+
+    segmentProfilesEl.appendChild(card);
+  });
 }
 
-function formatAnaResponse({ snapshot, metricChange, driver, actions }) {
-  return `Context: ${snapshot.timeframe} ${formatTeamName(snapshot.team)} | Goal: ${snapshot.selected.goal} | No-show baseline: ${snapshot.noShowRate}% | ${snapshot.northStarKpi}: ${snapshot.selected.kpis?.[1]?.value || "N/A"}.
-What changed: ${metricChange}.
-Why it likely changed: ${driver}.
-What to do next: 1) ${actions[0]} 2) ${actions[1] || actions[0]}.`;
-}
+async function loadEngagementData() {
+  try {
+    const response = await fetch("outputs/engagement_metrics.json");
+    if (!response.ok) return;
 
-function getAnaReply(userText) {
-  const text = normalizeText(userText);
-  const snapshot = buildBusinessSnapshot();
-  const drop = findLargestJourneyDrop(snapshot.selected.journey);
-  const focusTeam = formatTeamName(snapshot.team);
-  const persona = getNoShowPersona(snapshot);
-  const topKpis = getTopKpiSummary(snapshot.selected);
-  const focusStage = `${drop.from} → ${drop.to}`;
-  const shortFollowUp = text.split(" ").filter(Boolean).length <= 5;
-  const asksWhyOnly = shortFollowUp && ["why", "why now", "why though", "why?"].includes(text);
-  const asksNextOnly =
-    shortFollowUp &&
-    ["what next", "next", "what now", "what next?", "now what"].includes(text);
-  const asksForThisTeam = text.includes("this team") || text.includes("for this team");
-
-  const asksNoShowPatientType =
-    (text.includes("patient") || text.includes("people")) &&
-    (text.includes("likely") || text.includes("risk") || text.includes("high risk")) &&
-    (text.includes("no show") || text.includes("not show") || text.includes("miss appointment"));
-  const asksHealthCheck =
-    (text.includes("good") && text.includes("bad")) ||
-    text.includes("are we doing good") ||
-    text.includes("are we doing well");
-  const asksTopPriorities =
-    (text.includes("top") && text.includes("priorit")) ||
-    text.includes("3 priorities") ||
-    text.includes("three priorities");
-  const asksRevenueDriver =
-    text.includes("hurting revenue") ||
-    text.includes("revenue") ||
-    text.includes("billing");
-  const asksSimpleExplanation =
-    text.includes("explain that simply") ||
-    text.includes("in simple terms") ||
-    text.includes("simplify");
-  const asksConfidence =
-    text.includes("how confident") ||
-    text.includes("confidence");
-  const asksAccuracy =
-    text.includes("accuracy") ||
-    text.includes("mape") ||
-    text.includes("forecast error") ||
-    text.includes("model performance");
-
-  const asksMetricDefinition =
-    text.includes("what does") ||
-    text.includes("definition") ||
-    text.includes("define") ||
-    text.includes("what is mape");
-
-  const asksImproveAccuracy =
-    (text.includes("improve") && text.includes("accuracy")) ||
-    (text.includes("reduce") && text.includes("mape")) ||
-    text.includes("make the forecast better");
-
-  const accuracy = getAccuracyMetrics(snapshot);
-  if (asksForThisTeam && anaState.lastIntent) {
-    if (anaState.lastIntent === "priority") {
-      updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
-      return `For ${focusTeam}, keep the same playbook but target ${focusStage} first. It is the largest drop (${drop.drop} patients), so this team should prioritize that stage before broad campaigns.`;
+    const remote = await response.json();
+    if (remote?.no_show && remote?.satisfaction) {
+      engagementData = remote;
+      render();
+      renderEngagement();
     }
-
-    if (anaState.lastIntent === "status") {
-      updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
-      return `For ${snapshot.timeframe} ${focusTeam}, current target is ${snapshot.selected.goal}. Biggest leakage is still ${focusStage} with ${drop.conversion}% conversion.`;
-    }
+  } catch (error) {
+    console.warn("Using fallback engagement data.", error);
   }
+}
 
-  if ((asksWhyOnly || asksNextOnly) && anaState.lastIntent) {
-    if (anaState.lastIntent === "priority" || anaState.lastIntent === "strategy") {
-      if (asksWhyOnly) {
-        updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
-        return `Because ${focusStage} is your largest measurable leak (${drop.drop} lost patients), improving this handoff usually lifts outcomes faster than broad campaigns.`;
+async function loadAnalyticsData() {
+  try {
+    const [snapshotResponse, strategyResponse] = await Promise.all([
+      fetch("outputs/metrics_snapshot.json"),
+      fetch("outputs/strategy_rules.json")
+    ]);
+
+    if (snapshotResponse.ok) {
+      const snapshot = await snapshotResponse.json();
+      if (snapshot?.feature_importance && snapshot?.segment_profiles && snapshot?.forecast) {
+        analyticsData = snapshot;
       }
-
-      updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
-      return `Next step: run a focused 2-step reminder + same-day outreach sequence on ${focusStage} for two weeks, then measure impact on ${snapshot.northStarKpi}.`;
     }
 
-    if (anaState.lastIntent === "status" || anaState.lastIntent === "leak") {
-      updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
-      return `Because ${focusStage} is where intent meets friction: longer wait windows, weaker confirmations, and scheduling delays. That combination usually creates the largest avoidable leakage.`;
-    }
-  }
-
-  if (asksSimpleExplanation && anaState.lastIntent) {
-    if (anaState.lastIntent === "priority" || anaState.lastIntent === "strategy") {
-      return `Simple version: we’re losing the most people at ${focusStage}. If we fix that one step first, the business should improve faster than spreading effort everywhere.`;
-    }
-    if (anaState.lastIntent === "status" || anaState.lastIntent === "leak") {
-      return `Simple version: your headline KPI is improving, but too many patients still drop between ${focusStage}. That bottleneck is the main blocker right now.`;
-    }
-    if (anaState.lastIntent === "revenue") {
-      return `Simple version: revenue is being hurt mostly because too many patients drop before completing care. Fixing ${focusStage} should protect downstream billing.`;
+    if (strategyResponse.ok) {
+      const strategy = await strategyResponse.json();
+      if (strategy?.segment_strategies || strategy?.global_signals) {
+        strategyData = strategy;
+      }
     }
 
-    if (
-      anaState.lastIntent === "accuracy_metrics" ||
-      anaState.lastIntent === "accuracy_improvement"
-    ) {
-      return "Simple version: MAPE is average forecast error percentage. Lower MAPE means more reliable planning numbers.";
-    }
-
-  if (asksConfidence) {
-    updateAnaState("confidence", snapshot, focusStage, snapshot.northStarKpi);
-    return `Confidence is moderate. We have clear directional signals (largest leak at ${focusStage}, no-show baseline ${snapshot.noShowRate}%, and highest-risk lead bucket ${persona.bucket}), but I’d confirm with a 2-week intervention test before scaling.`;
+    renderAnalytics();
+  } catch (error) {
+    console.warn("Using fallback analytics data.", error);
   }
-
-  if (asksImproveAccuracy) {
-    updateAnaState("accuracy_improvement", snapshot, focusStage, "Forecast MAPE");
-    return `To improve accuracy metrics, focus on lowering MAPE (forecast error): current admissions MAPE is ${accuracy.admissionsMape.toFixed(2)}%, billing MAPE is ${accuracy.billingMape.toFixed(2)}%, and satisfaction model MAPE is ${accuracy.satisfactionMape.toFixed(2)}%. Practical improvements: 1) add latest 4-8 weeks of data more frequently, 2) segment forecasts by team or service line instead of one global model, 3) track prediction error weekly and retrain when error drifts up for 2 or more periods.`;
-  }
-
-  if (asksAccuracy) {
-    updateAnaState("accuracy_metrics", snapshot, focusStage, "MAPE");
-    return `Accuracy snapshot: admissions MAPE ${accuracy.admissionsMape.toFixed(2)}%, billing MAPE ${accuracy.billingMape.toFixed(2)}%, satisfaction MAPE ${accuracy.satisfactionMape.toFixed(2)}% across ${accuracy.records.toLocaleString()} records. MAPE means average percent error, and lower is better. For example, 8% means forecasts are off by about 8% on average. These errors determine how much trust to place in planning targets and staffing or budget decisions.`;
-  }
-
-  if (asksMetricDefinition) {
-    updateAnaState("metric_definition", snapshot, focusStage, "MAPE");
-    return `Key accuracy definitions: MAPE (Mean Absolute Percentage Error) is average forecast error in percent, and lower is better. Example: MAPE 12% means predictions are typically 12% away from actual values. In this dashboard, admissions and billing MAPE show forecast reliability, while satisfaction MAPE shows how well the experience model fits real outcomes.`;
-  }
-  if (asksTopPriorities) {
-    updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
-    return `Top 3 priorities now: 1) Fix ${focusStage} conversion leak (${drop.drop} lost). 2) Intensify reminders for ${persona.bucket} bookings (${toPct(persona.bucketRate)} risk). 3) Run a weekly review on ${snapshot.northStarKpi} and no-show trend to keep only actions that move outcomes.`;
-  }
-
-  if (asksHealthCheck) {
-    updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
-    return `Short answer: mixed, leaning positive. ${getPrimaryKpiChange(snapshot.selected)}, but ${focusStage} is still leaking ${drop.drop} patients and no-show baseline remains ${snapshot.noShowRate}%.`;
-  }
-
-  if (asksRevenueDriver) {
-    updateAnaState("revenue", snapshot, focusStage, "Avg billing per patient");
-    return `Primary revenue drag appears operational: leakage at ${focusStage} and elevated no-show risk (${snapshot.noShowRate}% baseline). Fewer patients progressing to attended/active care likely suppresses downstream billing more than top-of-funnel demand.`;
-  }
-
-  if (
-    shortFollowUp &&
-    (text.includes("what") || text.includes("which")) &&
-    !text.includes("status") &&
-    !text.includes("priority") &&
-    !text.includes("prioritize") &&
-    !text.includes("happening") &&
-    !text.includes("what next") &&
-    !text.includes("leak")
-  ) {
-    return "I can narrow this down quickly. Do you want current status, biggest leak, or top priority?";
-  }
-
-  if (asksNoShowPatientType) {
-    updateAnaState("no_show_risk", snapshot, focusStage, "No-show rate");
-    return formatAnaResponse({
-      snapshot,
-      metricChange: `No-show risk peaks in ${persona.bucket} bookings at ${toPct(persona.bucketRate)} vs baseline ${snapshot.noShowRate}%`,
-      driver: `Longer lead times (avg ${snapshot.noShow.avg_lead_days.toFixed(1)} days) plus SMS coverage at ${toPct(persona.smsCoverage)} leave more room for drop-off`,
-      actions: [
-        `Increase reminder intensity for ${persona.bucket} appointments first`,
-        "Escalate unconfirmed high-risk appointments to same-day call outreach"
-      ]
-    });
-  }
-
-  if (text.includes("why") && (text.includes("drop") || text.includes("leak") || text.includes("conversion"))) {
-    updateAnaState("leak", snapshot, focusStage, snapshot.northStarKpi);
-    return formatAnaResponse({
-      snapshot,
-      metricChange: `${drop.from} → ${drop.to} conversion is ${drop.conversion}% with ${drop.drop} patients lost`,
-      driver: `This stage is sensitive to reminder timing and scheduling friction; it is the largest leak in the current journey`,
-      actions: [
-        `Deploy a tighter reminder cadence at ${drop.from} stage`,
-        "Route non-confirmed patients to rapid rescheduling within 24 hours"
-      ]
-    });
-  }
-
-  if (
-    text.includes("priority") ||
-    text.includes("prioritize") ||
-    text.includes("first") ||
-    text.includes("where should") ||
-    text.includes("what next")
-  ) {
-    updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
-    return formatAnaResponse({
-      snapshot,
-      metricChange: `Largest impact gap is ${drop.from} → ${drop.to} with ${drop.drop} lost patients and ${drop.conversion}% conversion`,
-      driver: `This drop is materially larger than other funnel steps, so fixing it should move no-show and retention metrics fastest`,
-      actions: [
-        `Prioritize one intervention on ${drop.from} → ${drop.to} this week`,
-        `Track weekly movement on ${snapshot.northStarKpi} and no-show baseline`
-      ]
-    });
-  }
-
-  if (text.includes("30 days") || text.includes("next month") || text.includes("action plan")) {
-    updateAnaState("plan_30_day", snapshot, focusStage, snapshot.northStarKpi);
-    return formatAnaResponse({
-      snapshot,
-      metricChange: `${getPrimaryKpiChange(snapshot.selected)} and ${drop.from} → ${drop.to} still drops ${drop.drop} patients`,
-      driver: `High-risk lead-time bucket (${persona.bucket}) remains elevated at ${toPct(persona.bucketRate)}, indicating follow-through friction`,
-      actions: [
-        `Week 1-2: target ${persona.bucket} appointments with 2-step reminders + confirmation calls`,
-        `Week 3-4: A/B test one script and keep changes that improve ${snapshot.northStarKpi}`
-      ]
-    });
-  }
-
-  if (
-    text.includes("scenario") ||
-    text.includes("current") ||
-    text.includes("status") ||
-    text.includes("how are we doing") ||
-    text.includes("what s happening") ||
-    text.includes("whats happening") ||
-    text.includes("happening")
-  ) {
-    updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
-    return formatAnaResponse({
-      snapshot,
-      metricChange: `${getPrimaryKpiChange(snapshot.selected)} while ${drop.from} → ${drop.to} conversion is ${drop.conversion}%`,
-      driver: `Performance is mixed: headline KPI trend is moving, but journey leakage and no-show baseline at ${snapshot.noShowRate}% still constrain outcomes`,
-      actions: [
-        `Stabilize ${drop.from} → ${drop.to} conversion with reminder + scheduling checks`,
-        "Review high-risk lead buckets weekly and rebalance outreach capacity"
-      ]
-    });
-  }
-
-  if (text.includes("strategy") || text.includes("strategies") || text.includes("plan") || text.includes("improve") || text.includes("help")) {
-    updateAnaState("strategy", snapshot, focusStage, snapshot.northStarKpi);
-    return formatAnaResponse({
-      snapshot,
-      metricChange: `${drop.from} → ${drop.to} is the main leakage point (${drop.drop} patients), and no-show baseline is ${snapshot.noShowRate}%`,
-      driver: `Long booking lead times (avg ${snapshot.noShow.avg_lead_days.toFixed(1)} days) and incomplete reminder coverage weaken conversion reliability`,
-      actions: [
-        `Protect ${drop.from} → ${drop.to} with stricter reminder cadence`,
-        `Set a weekly operating review on ${snapshot.northStarKpi} and no-show trend`
-      ]
-    });
-  }
-
-  if (text.includes("no show") || text.includes("attendance")) {
-    updateAnaState("no_show", snapshot, focusStage, "No-show rate");
-    return formatAnaResponse({
-      snapshot,
-      metricChange: `No-show baseline is ${snapshot.noShowRate}% and rises to ${toPct(persona.bucketRate)} for ${persona.bucket}`,
-      driver: `Lead-time friction is the clearest driver, amplified by SMS reminder coverage of ${toPct(persona.smsCoverage)}`,
-      actions: [
-        `Expand reminders for ${persona.bucket} appointments first`,
-        "Escalate non-confirmed patients to outbound confirmation calls"
-      ]
-    });
-  }
-
-  if (text.includes("satisfaction") || text.includes("experience") || text.includes("csat")) {
-    updateAnaState("satisfaction", snapshot, focusStage, "Avg satisfaction");
-    return formatAnaResponse({
-      snapshot,
-      metricChange: `Avg satisfaction is ${snapshot.satisfaction.avg_satisfaction.toFixed(1)}/100 with high-satisfaction ratio ${toPct(snapshot.satisfaction.high_satisfaction_ratio)}`,
-      driver: `Model signals show severity (${snapshot.satisfaction.correlation_with_satisfaction.Severity.toFixed(2)}) and anxiety (${snapshot.satisfaction.correlation_with_satisfaction.Anxiety.toFixed(2)}) as key negative correlates`,
-      actions: [
-        "Add reassurance scripts for high-acuity/high-anxiety cohorts",
-        "Pair follow-up outreach with expectation-setting before visits"
-      ]
-    });
-  }
-
-  if (text.includes("retention") || text.includes("growth") || text.includes("kpi")) {
-    updateAnaState("kpi", snapshot, focusStage, snapshot.northStarKpi);
-    return formatAnaResponse({
-      snapshot,
-      metricChange: `${topKpis}; largest retention drag remains ${drop.from} → ${drop.to} (${drop.drop} lost)`,
-      driver: `Growth and retention are being limited more by mid-funnel leakage than top-of-funnel volume`,
-      actions: [
-        `Fix ${drop.from} → ${drop.to} first with targeted confirmations`,
-        `Run weekly KPI review using ${snapshot.northStarKpi} plus no-show rate`
-      ]
-    });
-  }
-
-  updateAnaState("fallback", snapshot, focusStage, snapshot.northStarKpi);
-  updateAnaState("fallback", snapshot, focusStage, snapshot.northStarKpi);
-  return `I’m a data analytics assistant for this dashboard. I can summarize current status, top 3 priorities, revenue drag, and model accuracy like MAPE, what it means, and how to improve it for the ${snapshot.timeframe} ${focusTeam}.`;
-
-function addAnaMessage(text, role = "bot") {
-  if (!anaMessagesEl) return null;
-
-  const bubble = document.createElement("div");
-  bubble.className = `ana-bubble ${role}`;
-  bubble.textContent = text;
-  anaMessagesEl.appendChild(bubble);
-  anaMessagesEl.scrollTop = anaMessagesEl.scrollHeight;
-  return bubble;
 }
 
-function initAna() {
-  if (!anaToggleEl || !anaPanelEl || !anaFormEl || !anaInputEl) return;
-
-  addAnaMessage(
-    "Hi, I’m Ana 👋 I’m your data-first analytics partner. Ask for current status, trend shifts, anomalies, and recommended actions tied directly to dashboard metrics."
-  );
-
-  anaToggleEl.addEventListener("click", () => {
-    const isOpen = !anaPanelEl.hidden;
-    anaPanelEl.hidden = isOpen;
-    anaToggleEl.setAttribute("aria-expanded", String(!isOpen));
-    if (!isOpen) anaInputEl.focus();
+[timeframeEl, teamEl].forEach((el) => {
+  el.addEventListener("change", () => {
+    render();
   });
+});
 
-  anaFormEl.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const userText = anaInputEl.value.trim();
-    if (!userText) return;
-
-    addAnaMessage(userText, "user");
-    anaFormEl.reset();
-
-    const thinkingBubble = addAnaMessage("Ana is thinking…", "thinking");
-    const pause = 900 + Math.floor(Math.random() * 900);
-    await new Promise((resolve) => setTimeout(resolve, pause));
-
-    if (thinkingBubble?.parentNode) {
-      thinkingBubble.remove();
-    }
-
-    addAnaMessage(getAnaReply(userText), "bot");
-  });
-}
-
+render();
+renderEngagement();
+renderAnalytics();
+loadEngagementData();
+loadAnalyticsData();
 function renderAnalytics() {
   if (
     !analyticsKpisEl ||
@@ -1334,6 +1005,5 @@ async function loadAnalyticsData() {
 render();
 renderEngagement();
 renderAnalytics();
-initAna();
 loadEngagementData();
 loadAnalyticsData();
