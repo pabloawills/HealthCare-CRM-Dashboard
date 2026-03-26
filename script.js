@@ -423,6 +423,14 @@ const anaMessagesEl = document.getElementById("anaMessages");
 const anaFormEl = document.getElementById("anaForm");
 const anaInputEl = document.getElementById("anaInput");
 
+const anaState = {
+  lastIntent: null,
+  lastFocusStage: null,
+  lastKpi: null,
+  lastTeam: null,
+  lastTimeframe: null
+};
+
 function formatTeamName(team) {
   if (team === "all") return "Cross-team view";
   return team
@@ -791,6 +799,22 @@ function getTopKpiSummary(selected) {
   return strongest || `${selected.kpis[0].label}: ${selected.kpis[0].value}`;
 }
 
+function updateAnaState(intent, snapshot, focusStage, kpi) {
+  anaState.lastIntent = intent;
+  anaState.lastFocusStage = focusStage || anaState.lastFocusStage;
+  anaState.lastKpi = kpi || snapshot.northStarKpi || anaState.lastKpi;
+  anaState.lastTeam = snapshot.team;
+  anaState.lastTimeframe = snapshot.timeframe;
+}
+
+function getContextualFallback(snapshot) {
+  const teamName = formatTeamName(anaState.lastTeam || snapshot.team);
+  const timeframe = anaState.lastTimeframe || snapshot.timeframe;
+  const rememberedKpi = anaState.lastKpi ? ` and watch ${anaState.lastKpi}` : "";
+
+  return `I can help with current status, biggest leaks, priorities, no-show risk, and a 30-day plan. For ${timeframe} ${teamName}, ask: “What’s the biggest leak right now?”${rememberedKpi}.`;
+}
+
 function getAnaReply(userText) {
   const text = normalizeText(userText);
   const snapshot = buildBusinessSnapshot();
@@ -798,49 +822,99 @@ function getAnaReply(userText) {
   const focusTeam = formatTeamName(snapshot.team);
   const persona = getNoShowPersona(snapshot);
   const topKpis = getTopKpiSummary(snapshot.selected);
+  const focusStage = `${drop.from} → ${drop.to}`;
+  const shortFollowUp = text.split(" ").filter(Boolean).length <= 5;
+  const asksWhyOnly = shortFollowUp && ["why", "why now", "why though", "why?"].includes(text);
+  const asksNextOnly =
+    shortFollowUp &&
+    ["what next", "next", "what now", "what next?", "now what"].includes(text);
+  const asksForThisTeam = text.includes("this team") || text.includes("for this team");
 
   const asksNoShowPatientType =
     (text.includes("patient") || text.includes("people")) &&
     (text.includes("likely") || text.includes("risk") || text.includes("high risk")) &&
     (text.includes("no show") || text.includes("not show") || text.includes("miss appointment"));
 
+  if (asksForThisTeam && anaState.lastIntent) {
+    if (anaState.lastIntent === "priority") {
+      updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
+      return `For ${focusTeam}, keep the same playbook but target ${focusStage} first. It is the largest drop (${drop.drop} patients), so this team should prioritize that stage before broad campaigns.`;
+    }
+
+    if (anaState.lastIntent === "status") {
+      updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
+      return `For ${snapshot.timeframe} ${focusTeam}, current target is ${snapshot.selected.goal}. Biggest leakage is still ${focusStage} with ${drop.conversion}% conversion.`;
+    }
+  }
+
+  if ((asksWhyOnly || asksNextOnly) && anaState.lastIntent) {
+    if (anaState.lastIntent === "priority" || anaState.lastIntent === "strategy") {
+      updateAnaState("follow_up_next", snapshot, focusStage, snapshot.northStarKpi);
+      return `Next step: run a focused 2-step reminder + same-day outreach sequence on ${focusStage} for two weeks, then measure impact on ${snapshot.northStarKpi}.`;
+    }
+
+    if (anaState.lastIntent === "status" || anaState.lastIntent === "leak") {
+      updateAnaState("follow_up_why", snapshot, focusStage, snapshot.northStarKpi);
+      return `Because ${focusStage} is where intent meets friction: longer wait windows, weaker confirmations, and scheduling delays. That combination usually creates the largest avoidable leakage.`;
+    }
+  }
+
+  if (
+    shortFollowUp &&
+    (text.includes("what") || text.includes("which")) &&
+    !text.includes("status") &&
+    !text.includes("priority") &&
+    !text.includes("leak")
+  ) {
+    return "I can narrow this down quickly. Do you want current status, biggest leak, or top priority?";
+  }
+
   if (asksNoShowPatientType) {
+    updateAnaState("no_show_risk", snapshot, focusStage, "No-show rate");
     return `That’s a very good question. From this data, the highest-risk patient pattern is behavioral: people booked ${persona.bucket} in advance show the highest no-show risk at ${toPct(persona.bucketRate)}. Longer wait windows create more schedule conflicts, motivation drops over time, and reminder coverage is still only ${toPct(persona.smsCoverage)}. So the riskiest profile here is long-lead appointments plus weaker reminder reach, not one specific diagnosis group.`;
   }
 
   if (text.includes("why") && (text.includes("drop") || text.includes("leak") || text.includes("conversion"))) {
+    updateAnaState("leak", snapshot, focusStage, snapshot.northStarKpi);
     return `If we look at the funnel, the main leak is ${drop.from} → ${drop.to}. Usually this is where intent is still high but follow-through gets harder because of timing friction, unanswered reminders, or scheduling delays. I’d treat this as an operations gap more than a demand problem.`;
   }
 
   if (text.includes("priority") || text.includes("first") || text.includes("where should")) {
+    updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
     return `If you want the highest-impact first move, focus on ${drop.from} → ${drop.to}. It’s your largest drop with ${drop.drop} patients lost. A focused reminder and same-day outreach sequence here will usually outperform broad campaigns.`;
   }
 
   if (text.includes("30 days") || text.includes("next month") || text.includes("action plan")) {
+    updateAnaState("plan_30_day", snapshot, focusStage, snapshot.northStarKpi);
     return `Here’s a practical 30-day plan: Week 1, flag all ${persona.bucket} bookings as high-risk and add 2-step reminders. Week 2, escalate non-confirmed appointments to a call queue. Week 3, test one script variation by team. Week 4, review ${snapshot.northStarKpi} plus no-show trend and keep only what improved outcomes.`;
   }
 
   if (text.includes("scenario") || text.includes("current") || text.includes("status") || text.includes("how are we doing")) {
+    updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
     return `In the ${snapshot.timeframe} ${focusTeam} view, the target is ${snapshot.selected.goal}. Biggest funnel gap is ${drop.from} → ${drop.to} with ${drop.conversion}% conversion, and no-show baseline is ${snapshot.noShowRate}%. Quick pulse: solid momentum, but fixing that stage should unlock the clearest gains.`;
   }
 
   if (text.includes("strategy") || text.includes("strategies") || text.includes("plan") || text.includes("improve") || text.includes("help")) {
+    updateAnaState("strategy", snapshot, focusStage, snapshot.northStarKpi);
     return `I’d keep this simple and practical: first, defend the ${drop.from} → ${drop.to} stage with tighter reminder cadences; second, give long-lead bookings averaging ${snapshot.noShow.avg_lead_days.toFixed(1)} days extra confirmation touches; third, run a weekly checkpoint on ${snapshot.northStarKpi}. That gives fast learning without overwhelming the team.`;
   }
 
   if (text.includes("no show") || text.includes("attendance")) {
+    updateAnaState("no_show", snapshot, focusStage, "No-show rate");
     return `Current no-show baseline is ${snapshot.noShowRate}%. The strongest signal is lead time: ${persona.bucket} has the highest risk at ${toPct(persona.bucketRate)}. Reminder coverage is ${toPct(persona.smsCoverage)}, so the most practical lever is increasing reminder intensity for long-wait bookings first.`;
   }
 
   if (text.includes("satisfaction") || text.includes("experience") || text.includes("csat")) {
+    updateAnaState("satisfaction", snapshot, focusStage, "Avg satisfaction");
     return `On patient experience, satisfaction is being pulled by severity and anxiety signals in your model. The practical move is pairing clinical follow-up with expectation-setting and reassurance scripts for higher-acuity patients so experience improves alongside outcomes.`;
   }
 
   if (text.includes("retention") || text.includes("growth") || text.includes("kpi")) {
+    updateAnaState("kpi", snapshot, focusStage, snapshot.northStarKpi);
     return `To improve retention and growth without overcomplicating things, fix the biggest conversion gap first at ${drop.from} → ${drop.to}, then track one leading KPI weekly. Right now your strongest KPI pulse is ${topKpis}.`;
   }
 
-  return `I can help with practical planning, no-show risk, funnel leaks, 30-day actions, and KPI priorities. Ask me something like “What should we prioritize first?” or “Give me a 30-day plan for this team.”`;
+  return getContextualFallback(snapshot);
 }
 
 function addAnaMessage(text, role = "bot") {
