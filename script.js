@@ -831,6 +831,18 @@ function getPrimaryKpiChange(selected) {
   return `${metric.label} is ${metric.value} (${directionWord} ${deltaValue}${metric.deltaSuffix || ""} vs prior period)`;
 }
 
+function getAccuracyMetrics(snapshot) {
+  const forecast = analyticsData.forecast || {};
+  const model = snapshot.satisfaction?.linear_model || {};
+
+  return {
+    admissionsMape: Number(forecast.admissions_mape_last_6 || 0),
+    billingMape: Number(forecast.billing_mape_last_6 || 0),
+    satisfactionMape: Number(model.mape || 0),
+    records: Number(snapshot.satisfaction?.records || 0)
+  };
+}
+
 function formatAnaResponse({ snapshot, metricChange, driver, actions }) {
   return `Context: ${snapshot.timeframe} ${formatTeamName(snapshot.team)} | Goal: ${snapshot.selected.goal} | No-show baseline: ${snapshot.noShowRate}% | ${snapshot.northStarKpi}: ${snapshot.selected.kpis?.[1]?.value || "N/A"}.
 What changed: ${metricChange}.
@@ -876,7 +888,24 @@ function getAnaReply(userText) {
   const asksConfidence =
     text.includes("how confident") ||
     text.includes("confidence");
+  const asksAccuracy =
+    text.includes("accuracy") ||
+    text.includes("mape") ||
+    text.includes("forecast error") ||
+    text.includes("model performance");
 
+  const asksMetricDefinition =
+    text.includes("what does") ||
+    text.includes("definition") ||
+    text.includes("define") ||
+    text.includes("what is mape");
+
+  const asksImproveAccuracy =
+    (text.includes("improve") && text.includes("accuracy")) ||
+    (text.includes("reduce") && text.includes("mape")) ||
+    text.includes("make the forecast better");
+
+  const accuracy = getAccuracyMetrics(snapshot);
   if (asksForThisTeam && anaState.lastIntent) {
     if (anaState.lastIntent === "priority") {
       updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
@@ -913,13 +942,36 @@ function getAnaReply(userText) {
     if (anaState.lastIntent === "status" || anaState.lastIntent === "leak") {
       return `Simple version: your headline KPI is improving, but too many patients still drop between ${focusStage}. That bottleneck is the main blocker right now.`;
     }
-  }
+    if (anaState.lastIntent === "revenue") {
+      return `Simple version: revenue is being hurt mostly because too many patients drop before completing care. Fixing ${focusStage} should protect downstream billing.`;
+    }
+
+    if (
+      anaState.lastIntent === "accuracy_metrics" ||
+      anaState.lastIntent === "accuracy_improvement"
+    ) {
+      return "Simple version: MAPE is average forecast error percentage. Lower MAPE means more reliable planning numbers.";
+    }
 
   if (asksConfidence) {
     updateAnaState("confidence", snapshot, focusStage, snapshot.northStarKpi);
     return `Confidence is moderate. We have clear directional signals (largest leak at ${focusStage}, no-show baseline ${snapshot.noShowRate}%, and highest-risk lead bucket ${persona.bucket}), but I’d confirm with a 2-week intervention test before scaling.`;
   }
 
+  if (asksImproveAccuracy) {
+    updateAnaState("accuracy_improvement", snapshot, focusStage, "Forecast MAPE");
+    return `To improve accuracy metrics, focus on lowering MAPE (forecast error): current admissions MAPE is ${accuracy.admissionsMape.toFixed(2)}%, billing MAPE is ${accuracy.billingMape.toFixed(2)}%, and satisfaction model MAPE is ${accuracy.satisfactionMape.toFixed(2)}%. Practical improvements: 1) add latest 4-8 weeks of data more frequently, 2) segment forecasts by team or service line instead of one global model, 3) track prediction error weekly and retrain when error drifts up for 2 or more periods.`;
+  }
+
+  if (asksAccuracy) {
+    updateAnaState("accuracy_metrics", snapshot, focusStage, "MAPE");
+    return `Accuracy snapshot: admissions MAPE ${accuracy.admissionsMape.toFixed(2)}%, billing MAPE ${accuracy.billingMape.toFixed(2)}%, satisfaction MAPE ${accuracy.satisfactionMape.toFixed(2)}% across ${accuracy.records.toLocaleString()} records. MAPE means average percent error, and lower is better. For example, 8% means forecasts are off by about 8% on average. These errors determine how much trust to place in planning targets and staffing or budget decisions.`;
+  }
+
+  if (asksMetricDefinition) {
+    updateAnaState("metric_definition", snapshot, focusStage, "MAPE");
+    return `Key accuracy definitions: MAPE (Mean Absolute Percentage Error) is average forecast error in percent, and lower is better. Example: MAPE 12% means predictions are typically 12% away from actual values. In this dashboard, admissions and billing MAPE show forecast reliability, while satisfaction MAPE shows how well the experience model fits real outcomes.`;
+  }
   if (asksTopPriorities) {
     updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
     return `Top 3 priorities now: 1) Fix ${focusStage} conversion leak (${drop.drop} lost). 2) Intensify reminders for ${persona.bucket} bookings (${toPct(persona.bucketRate)} risk). 3) Run a weekly review on ${snapshot.northStarKpi} and no-show trend to keep only actions that move outcomes.`;
@@ -1080,8 +1132,8 @@ function getAnaReply(userText) {
   }
 
   updateAnaState("fallback", snapshot, focusStage, snapshot.northStarKpi);
-  return getContextualFallback(snapshot);
-}
+  updateAnaState("fallback", snapshot, focusStage, snapshot.northStarKpi);
+  return `I’m a data analytics assistant for this dashboard. I can summarize current status, top 3 priorities, revenue drag, and model accuracy like MAPE, what it means, and how to improve it for the ${snapshot.timeframe} ${focusTeam}.`;
 
 function addAnaMessage(text, role = "bot") {
   if (!anaMessagesEl) return null;
