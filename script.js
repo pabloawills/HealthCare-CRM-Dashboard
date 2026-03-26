@@ -423,6 +423,14 @@ const anaMessagesEl = document.getElementById("anaMessages");
 const anaFormEl = document.getElementById("anaForm");
 const anaInputEl = document.getElementById("anaInput");
 
+const anaState = {
+  lastIntent: null,
+  lastFocusStage: null,
+  lastKpi: null,
+  lastTeam: null,
+  lastTimeframe: null
+};
+
 function formatTeamName(team) {
   if (team === "all") return "Cross-team view";
   return team
@@ -791,10 +799,32 @@ function getTopKpiSummary(selected) {
   return strongest || `${selected.kpis[0].label}: ${selected.kpis[0].value}`;
 }
 
+function updateAnaState(intent, snapshot, focusStage, kpi) {
+  anaState.lastIntent = intent;
+  anaState.lastFocusStage = focusStage || anaState.lastFocusStage;
+  anaState.lastKpi = kpi || snapshot.northStarKpi || anaState.lastKpi;
+  anaState.lastTeam = snapshot.team;
+  anaState.lastTimeframe = snapshot.timeframe;
+}
+
+function getContextualFallback(snapshot) {
+  const teamName = formatTeamName(anaState.lastTeam || snapshot.team);
+  const timeframe = anaState.lastTimeframe || snapshot.timeframe;
+  const rememberedKpi = anaState.lastKpi
+    ? ` and watch ${anaState.lastKpi}`
+    : "";
+
+  return `I can help with current status, biggest leaks, priorities, no-show risk, and a 30-day plan. For ${timeframe} ${teamName}, ask: “What’s the biggest leak right now?”${rememberedKpi}.`;
+}
+
 function getPrimaryKpiChange(selected) {
   const withDelta = (selected.kpis || []).find((kpi) => Number(kpi.delta) !== 0);
   const fallback = selected.kpis?.[0];
-  const metric = withDelta || fallback || { label: "Primary KPI", value: "N/A", delta: 0, deltaSuffix: "" };
+  const metric =
+    withDelta ||
+    fallback ||
+    { label: "Primary KPI", value: "N/A", delta: 0, deltaSuffix: "" };
+
   const directionWord = Number(metric.delta) >= 0 ? "up" : "down";
   const deltaValue = Math.abs(Number(metric.delta || 0));
 
@@ -802,7 +832,10 @@ function getPrimaryKpiChange(selected) {
 }
 
 function formatAnaResponse({ snapshot, metricChange, driver, actions }) {
-  return `Context: ${snapshot.timeframe} ${formatTeamName(snapshot.team)} | Goal: ${snapshot.selected.goal} | No-show baseline: ${snapshot.noShowRate}% | ${snapshot.northStarKpi}: ${snapshot.selected.kpis?.[1]?.value || "N/A"}.\nWhat changed: ${metricChange}.\nWhy it likely changed: ${driver}.\nWhat to do next: 1) ${actions[0]} 2) ${actions[1] || actions[0]}.`;
+  return `Context: ${snapshot.timeframe} ${formatTeamName(snapshot.team)} | Goal: ${snapshot.selected.goal} | No-show baseline: ${snapshot.noShowRate}% | ${snapshot.northStarKpi}: ${snapshot.selected.kpis?.[1]?.value || "N/A"}.
+What changed: ${metricChange}.
+Why it likely changed: ${driver}.
+What to do next: 1) ${actions[0]} 2) ${actions[1] || actions[0]}.`;
 }
 
 function getAnaReply(userText) {
@@ -811,13 +844,56 @@ function getAnaReply(userText) {
   const drop = findLargestJourneyDrop(snapshot.selected.journey);
   const persona = getNoShowPersona(snapshot);
   const topKpis = getTopKpiSummary(snapshot.selected);
+  const focusStage = `${drop.from} → ${drop.to}`;
+  const shortFollowUp = text.split(" ").filter(Boolean).length <= 5;
+  const asksWhyOnly = shortFollowUp && ["why", "why now", "why though", "why?"].includes(text);
+  const asksNextOnly =
+    shortFollowUp &&
+    ["what next", "next", "what now", "what next?", "now what"].includes(text);
+  const asksForThisTeam = text.includes("this team") || text.includes("for this team");
 
   const asksNoShowPatientType =
     (text.includes("patient") || text.includes("people")) &&
     (text.includes("likely") || text.includes("risk") || text.includes("high risk")) &&
     (text.includes("no show") || text.includes("not show") || text.includes("miss appointment"));
 
+  if (asksForThisTeam && anaState.lastIntent) {
+    if (anaState.lastIntent === "priority") {
+      updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
+      return `For ${focusTeam}, keep the same playbook but target ${focusStage} first. It is the largest drop (${drop.drop} patients), so this team should prioritize that stage before broad campaigns.`;
+    }
+
+    if (anaState.lastIntent === "status") {
+      updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
+      return `For ${snapshot.timeframe} ${focusTeam}, current target is ${snapshot.selected.goal}. Biggest leakage is still ${focusStage} with ${drop.conversion}% conversion.`;
+    }
+  }
+
+  if ((asksWhyOnly || asksNextOnly) && anaState.lastIntent) {
+    if (anaState.lastIntent === "priority" || anaState.lastIntent === "strategy") {
+      updateAnaState("follow_up_next", snapshot, focusStage, snapshot.northStarKpi);
+      return `Next step: run a focused 2-step reminder + same-day outreach sequence on ${focusStage} for two weeks, then measure impact on ${snapshot.northStarKpi}.`;
+    }
+
+    if (anaState.lastIntent === "status" || anaState.lastIntent === "leak") {
+      updateAnaState("follow_up_why", snapshot, focusStage, snapshot.northStarKpi);
+      return `Because ${focusStage} is where intent meets friction: longer wait windows, weaker confirmations, and scheduling delays. That combination usually creates the largest avoidable leakage.`;
+    }
+  }
+
+  if (
+    shortFollowUp &&
+    (text.includes("what") || text.includes("which")) &&
+    !text.includes("status") &&
+    !text.includes("priority") &&
+    !text.includes("leak")
+  ) {
+    return "I can narrow this down quickly. Do you want current status, biggest leak, or top priority?";
+  }
+
   if (asksNoShowPatientType) {
+  if (asksNoShowPatientType) {
+    updateAnaState("no_show_risk", snapshot, focusStage, "No-show rate");
     return formatAnaResponse({
       snapshot,
       metricChange: `No-show risk peaks in ${persona.bucket} bookings at ${toPct(persona.bucketRate)} vs baseline ${snapshot.noShowRate}%`,
@@ -830,6 +906,7 @@ function getAnaReply(userText) {
   }
 
   if (text.includes("why") && (text.includes("drop") || text.includes("leak") || text.includes("conversion"))) {
+    updateAnaState("leak", snapshot, focusStage, snapshot.northStarKpi);
     return formatAnaResponse({
       snapshot,
       metricChange: `${drop.from} → ${drop.to} conversion is ${drop.conversion}% with ${drop.drop} patients lost`,
@@ -842,6 +919,7 @@ function getAnaReply(userText) {
   }
 
   if (text.includes("priority") || text.includes("first") || text.includes("where should")) {
+    updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
     return formatAnaResponse({
       snapshot,
       metricChange: `Largest impact gap is ${drop.from} → ${drop.to} with ${drop.drop} lost patients and ${drop.conversion}% conversion`,
@@ -854,6 +932,7 @@ function getAnaReply(userText) {
   }
 
   if (text.includes("30 days") || text.includes("next month") || text.includes("action plan")) {
+    updateAnaState("plan_30_day", snapshot, focusStage, snapshot.northStarKpi);
     return formatAnaResponse({
       snapshot,
       metricChange: `${getPrimaryKpiChange(snapshot.selected)} and ${drop.from} → ${drop.to} still drops ${drop.drop} patients`,
@@ -866,6 +945,7 @@ function getAnaReply(userText) {
   }
 
   if (text.includes("scenario") || text.includes("current") || text.includes("status") || text.includes("how are we doing")) {
+    updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
     return formatAnaResponse({
       snapshot,
       metricChange: `${getPrimaryKpiChange(snapshot.selected)} while ${drop.from} → ${drop.to} conversion is ${drop.conversion}%`,
@@ -878,6 +958,7 @@ function getAnaReply(userText) {
   }
 
   if (text.includes("strategy") || text.includes("strategies") || text.includes("plan") || text.includes("improve") || text.includes("help")) {
+    updateAnaState("strategy", snapshot, focusStage, snapshot.northStarKpi);
     return formatAnaResponse({
       snapshot,
       metricChange: `${drop.from} → ${drop.to} is the main leakage point (${drop.drop} patients), and no-show baseline is ${snapshot.noShowRate}%`,
@@ -890,6 +971,7 @@ function getAnaReply(userText) {
   }
 
   if (text.includes("no show") || text.includes("attendance")) {
+    updateAnaState("no_show", snapshot, focusStage, "No-show rate");
     return formatAnaResponse({
       snapshot,
       metricChange: `No-show baseline is ${snapshot.noShowRate}% and rises to ${toPct(persona.bucketRate)} for ${persona.bucket}`,
@@ -902,6 +984,7 @@ function getAnaReply(userText) {
   }
 
   if (text.includes("satisfaction") || text.includes("experience") || text.includes("csat")) {
+    updateAnaState("satisfaction", snapshot, focusStage, "Avg satisfaction");
     return formatAnaResponse({
       snapshot,
       metricChange: `Avg satisfaction is ${snapshot.satisfaction.avg_satisfaction.toFixed(1)}/100 with high-satisfaction ratio ${toPct(snapshot.satisfaction.high_satisfaction_ratio)}`,
@@ -914,6 +997,7 @@ function getAnaReply(userText) {
   }
 
   if (text.includes("retention") || text.includes("growth") || text.includes("kpi")) {
+    updateAnaState("kpi", snapshot, focusStage, snapshot.northStarKpi);
     return formatAnaResponse({
       snapshot,
       metricChange: `${topKpis}; largest retention drag remains ${drop.from} → ${drop.to} (${drop.drop} lost)`,
@@ -925,7 +1009,7 @@ function getAnaReply(userText) {
     });
   }
 
-  return `I can help with practical planning, no-show risk, funnel leaks, 30-day actions, and KPI priorities. Ask me something like “What should we prioritize first?” or “Give me a 30-day plan for this team.”`;
+  return getContextualFallback(snapshot);
 }
 
 function addAnaMessage(text, role = "bot") {
