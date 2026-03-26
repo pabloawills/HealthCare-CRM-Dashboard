@@ -831,6 +831,18 @@ function getPrimaryKpiChange(selected) {
   return `${metric.label} is ${metric.value} (${directionWord} ${deltaValue}${metric.deltaSuffix || ""} vs prior period)`;
 }
 
+function getAccuracyMetrics(snapshot) {
+  const forecast = analyticsData.forecast || {};
+  const model = snapshot.satisfaction?.linear_model || {};
+
+  return {
+    admissionsMape: Number(forecast.admissions_mape_last_6 || 0),
+    billingMape: Number(forecast.billing_mape_last_6 || 0),
+    satisfactionMape: Number(model.mape || 0),
+    records: Number(snapshot.satisfaction?.records || 0)
+  };
+}
+
 function formatAnaResponse({ snapshot, metricChange, driver, actions }) {
   return `Context: ${snapshot.timeframe} ${formatTeamName(snapshot.team)} | Goal: ${snapshot.selected.goal} | No-show baseline: ${snapshot.noShowRate}% | ${snapshot.northStarKpi}: ${snapshot.selected.kpis?.[1]?.value || "N/A"}.
 What changed: ${metricChange}.
@@ -842,6 +854,7 @@ function getAnaReply(userText) {
   const text = normalizeText(userText);
   const snapshot = buildBusinessSnapshot();
   const drop = findLargestJourneyDrop(snapshot.selected.journey);
+  const focusTeam = formatTeamName(snapshot.team);
   const persona = getNoShowPersona(snapshot);
   const topKpis = getTopKpiSummary(snapshot.selected);
   const focusStage = `${drop.from} → ${drop.to}`;
@@ -856,6 +869,40 @@ function getAnaReply(userText) {
     (text.includes("patient") || text.includes("people")) &&
     (text.includes("likely") || text.includes("risk") || text.includes("high risk")) &&
     (text.includes("no show") || text.includes("not show") || text.includes("miss appointment"));
+  const asksHealthCheck =
+    (text.includes("good") && text.includes("bad")) ||
+    text.includes("are we doing good") ||
+    text.includes("are we doing well");
+  const asksTopPriorities =
+    (text.includes("top") && text.includes("priorit")) ||
+    text.includes("3 priorities") ||
+    text.includes("three priorities");
+  const asksRevenueDriver =
+    text.includes("hurting revenue") ||
+    text.includes("revenue") ||
+    text.includes("billing");
+  const asksSimpleExplanation =
+    text.includes("explain that simply") ||
+    text.includes("in simple terms") ||
+    text.includes("simplify");
+  const asksConfidence =
+    text.includes("how confident") ||
+    text.includes("confidence");
+  const asksAccuracy =
+    text.includes("accuracy") ||
+    text.includes("mape") ||
+    text.includes("forecast error") ||
+    text.includes("model performance");
+  const asksMetricDefinition =
+    text.includes("what does") ||
+    text.includes("definition") ||
+    text.includes("define") ||
+    text.includes("what is mape");
+  const asksImproveAccuracy =
+    (text.includes("improve") && text.includes("accuracy")) ||
+    (text.includes("reduce") && text.includes("mape")) ||
+    text.includes("make the forecast better");
+  const accuracy = getAccuracyMetrics(snapshot);
 
   if (asksForThisTeam && anaState.lastIntent) {
     if (anaState.lastIntent === "priority") {
@@ -871,14 +918,69 @@ function getAnaReply(userText) {
 
   if ((asksWhyOnly || asksNextOnly) && anaState.lastIntent) {
     if (anaState.lastIntent === "priority" || anaState.lastIntent === "strategy") {
-      updateAnaState("follow_up_next", snapshot, focusStage, snapshot.northStarKpi);
+      if (asksWhyOnly) {
+        updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
+        return `Because ${focusStage} is your largest measurable leak (${drop.drop} lost patients), improving this handoff usually lifts outcomes faster than broad campaigns.`;
+      }
+
+      updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
       return `Next step: run a focused 2-step reminder + same-day outreach sequence on ${focusStage} for two weeks, then measure impact on ${snapshot.northStarKpi}.`;
     }
 
     if (anaState.lastIntent === "status" || anaState.lastIntent === "leak") {
-      updateAnaState("follow_up_why", snapshot, focusStage, snapshot.northStarKpi);
+      updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
       return `Because ${focusStage} is where intent meets friction: longer wait windows, weaker confirmations, and scheduling delays. That combination usually creates the largest avoidable leakage.`;
     }
+  }
+
+  if (asksSimpleExplanation && anaState.lastIntent) {
+    if (anaState.lastIntent === "priority" || anaState.lastIntent === "strategy") {
+      return `Simple version: we’re losing the most people at ${focusStage}. If we fix that one step first, the business should improve faster than spreading effort everywhere.`;
+    }
+    if (anaState.lastIntent === "status" || anaState.lastIntent === "leak") {
+      return `Simple version: your headline KPI is improving, but too many patients still drop between ${focusStage}. That bottleneck is the main blocker right now.`;
+    }
+    if (anaState.lastIntent === "revenue") {
+      return `Simple version: revenue is being hurt mostly because too many patients drop before completing care. Fixing ${focusStage} should protect downstream billing.`;
+    }
+    if (anaState.lastIntent === "accuracy_metrics" || anaState.lastIntent === "accuracy_improvement") {
+      return "Simple version: MAPE is average forecast error percentage. Lower MAPE means more reliable planning numbers.";
+    }
+  }
+
+  if (asksConfidence) {
+    updateAnaState("confidence", snapshot, focusStage, snapshot.northStarKpi);
+    return `Confidence is moderate. We have clear directional signals (largest leak at ${focusStage}, no-show baseline ${snapshot.noShowRate}%, and highest-risk lead bucket ${persona.bucket}), but I’d confirm with a 2-week intervention test before scaling.`;
+  }
+
+  if (asksImproveAccuracy) {
+    updateAnaState("accuracy_improvement", snapshot, focusStage, "Forecast MAPE");
+    return `To improve accuracy metrics, focus on lowering MAPE (forecast error): current admissions MAPE is ${accuracy.admissionsMape.toFixed(2)}%, billing MAPE is ${accuracy.billingMape.toFixed(2)}%, and satisfaction model MAPE is ${accuracy.satisfactionMape.toFixed(2)}%. Practical improvements: 1) add latest 4-8 weeks of data more frequently, 2) segment forecasts by team/service line instead of one global model, 3) track prediction error weekly and retrain when error drifts up for 2+ periods.`;
+  }
+
+  if (asksAccuracy) {
+    updateAnaState("accuracy_metrics", snapshot, focusStage, "MAPE");
+    return `Accuracy snapshot: admissions MAPE ${accuracy.admissionsMape.toFixed(2)}%, billing MAPE ${accuracy.billingMape.toFixed(2)}%, satisfaction MAPE ${accuracy.satisfactionMape.toFixed(2)}% across ${accuracy.records.toLocaleString()} records. MAPE means average percent error — lower is better (for example, 8% means forecasts are off by about 8% on average). Relevance: these errors determine how much trust to place in planning targets and staffing/budget decisions.`;
+  }
+
+  if (asksMetricDefinition) {
+    updateAnaState("metric_definition", snapshot, focusStage, "MAPE");
+    return `Key accuracy definitions: MAPE (Mean Absolute Percentage Error) = average forecast error in percent, and lower is better. Example: MAPE 12% means predictions are typically 12% away from actual values. In this dashboard, admissions and billing MAPE show forecast reliability, while satisfaction MAPE shows how well the experience model fits real outcomes.`;
+  }
+
+  if (asksTopPriorities) {
+    updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
+    return `Top 3 priorities now: 1) Fix ${focusStage} conversion leak (${drop.drop} lost). 2) Intensify reminders for ${persona.bucket} bookings (${toPct(persona.bucketRate)} risk). 3) Run a weekly review on ${snapshot.northStarKpi} and no-show trend to keep only actions that move outcomes.`;
+  }
+
+  if (asksHealthCheck) {
+    updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
+    return `Short answer: mixed, leaning positive. ${getPrimaryKpiChange(snapshot.selected)}, but ${focusStage} is still leaking ${drop.drop} patients and no-show baseline remains ${snapshot.noShowRate}%.`;
+  }
+
+  if (asksRevenueDriver) {
+    updateAnaState("revenue", snapshot, focusStage, "Avg billing per patient");
+    return `Primary revenue drag appears operational: leakage at ${focusStage} and elevated no-show risk (${snapshot.noShowRate}% baseline). Fewer patients progressing to attended/active care likely suppresses downstream billing more than top-of-funnel demand.`;
   }
 
   if (
@@ -886,12 +988,14 @@ function getAnaReply(userText) {
     (text.includes("what") || text.includes("which")) &&
     !text.includes("status") &&
     !text.includes("priority") &&
+    !text.includes("prioritize") &&
+    !text.includes("happening") &&
+    !text.includes("what next") &&
     !text.includes("leak")
   ) {
     return "I can narrow this down quickly. Do you want current status, biggest leak, or top priority?";
   }
 
-  if (asksNoShowPatientType) {
   if (asksNoShowPatientType) {
     updateAnaState("no_show_risk", snapshot, focusStage, "No-show rate");
     return formatAnaResponse({
@@ -918,7 +1022,13 @@ function getAnaReply(userText) {
     });
   }
 
-  if (text.includes("priority") || text.includes("first") || text.includes("where should")) {
+  if (
+    text.includes("priority") ||
+    text.includes("prioritize") ||
+    text.includes("first") ||
+    text.includes("where should") ||
+    text.includes("what next")
+  ) {
     updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
     return formatAnaResponse({
       snapshot,
@@ -944,7 +1054,15 @@ function getAnaReply(userText) {
     });
   }
 
-  if (text.includes("scenario") || text.includes("current") || text.includes("status") || text.includes("how are we doing")) {
+  if (
+    text.includes("scenario") ||
+    text.includes("current") ||
+    text.includes("status") ||
+    text.includes("how are we doing") ||
+    text.includes("what s happening") ||
+    text.includes("whats happening") ||
+    text.includes("happening")
+  ) {
     updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
     return formatAnaResponse({
       snapshot,
@@ -1009,7 +1127,8 @@ function getAnaReply(userText) {
     });
   }
 
-  return getContextualFallback(snapshot);
+  updateAnaState("fallback", snapshot, focusStage, snapshot.northStarKpi);
+  return `I’m a data analytics assistant for this dashboard. I can summarize current status, top 3 priorities, revenue drag, and model accuracy (MAPE + meaning + improvement plan) for the ${snapshot.timeframe} ${focusTeam}.`;
 }
 
 function addAnaMessage(text, role = "bot") {
