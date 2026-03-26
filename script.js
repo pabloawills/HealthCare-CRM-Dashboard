@@ -810,16 +810,38 @@ function updateAnaState(intent, snapshot, focusStage, kpi) {
 function getContextualFallback(snapshot) {
   const teamName = formatTeamName(anaState.lastTeam || snapshot.team);
   const timeframe = anaState.lastTimeframe || snapshot.timeframe;
-  const rememberedKpi = anaState.lastKpi ? ` and watch ${anaState.lastKpi}` : "";
+  const rememberedKpi = anaState.lastKpi
+    ? ` and watch ${anaState.lastKpi}`
+    : "";
 
   return `I can help with current status, biggest leaks, priorities, no-show risk, and a 30-day plan. For ${timeframe} ${teamName}, ask: “What’s the biggest leak right now?”${rememberedKpi}.`;
+}
+
+function getPrimaryKpiChange(selected) {
+  const withDelta = (selected.kpis || []).find((kpi) => Number(kpi.delta) !== 0);
+  const fallback = selected.kpis?.[0];
+  const metric =
+    withDelta ||
+    fallback ||
+    { label: "Primary KPI", value: "N/A", delta: 0, deltaSuffix: "" };
+
+  const directionWord = Number(metric.delta) >= 0 ? "up" : "down";
+  const deltaValue = Math.abs(Number(metric.delta || 0));
+
+  return `${metric.label} is ${metric.value} (${directionWord} ${deltaValue}${metric.deltaSuffix || ""} vs prior period)`;
+}
+
+function formatAnaResponse({ snapshot, metricChange, driver, actions }) {
+  return `Context: ${snapshot.timeframe} ${formatTeamName(snapshot.team)} | Goal: ${snapshot.selected.goal} | No-show baseline: ${snapshot.noShowRate}% | ${snapshot.northStarKpi}: ${snapshot.selected.kpis?.[1]?.value || "N/A"}.
+What changed: ${metricChange}.
+Why it likely changed: ${driver}.
+What to do next: 1) ${actions[0]} 2) ${actions[1] || actions[0]}.`;
 }
 
 function getAnaReply(userText) {
   const text = normalizeText(userText);
   const snapshot = buildBusinessSnapshot();
   const drop = findLargestJourneyDrop(snapshot.selected.journey);
-  const focusTeam = formatTeamName(snapshot.team);
   const persona = getNoShowPersona(snapshot);
   const topKpis = getTopKpiSummary(snapshot.selected);
   const focusStage = `${drop.from} → ${drop.to}`;
@@ -870,48 +892,121 @@ function getAnaReply(userText) {
   }
 
   if (asksNoShowPatientType) {
+  if (asksNoShowPatientType) {
     updateAnaState("no_show_risk", snapshot, focusStage, "No-show rate");
-    return `That’s a very good question. From this data, the highest-risk patient pattern is behavioral: people booked ${persona.bucket} in advance show the highest no-show risk at ${toPct(persona.bucketRate)}. Longer wait windows create more schedule conflicts, motivation drops over time, and reminder coverage is still only ${toPct(persona.smsCoverage)}. So the riskiest profile here is long-lead appointments plus weaker reminder reach, not one specific diagnosis group.`;
+    return formatAnaResponse({
+      snapshot,
+      metricChange: `No-show risk peaks in ${persona.bucket} bookings at ${toPct(persona.bucketRate)} vs baseline ${snapshot.noShowRate}%`,
+      driver: `Longer lead times (avg ${snapshot.noShow.avg_lead_days.toFixed(1)} days) plus SMS coverage at ${toPct(persona.smsCoverage)} leave more room for drop-off`,
+      actions: [
+        `Increase reminder intensity for ${persona.bucket} appointments first`,
+        "Escalate unconfirmed high-risk appointments to same-day call outreach"
+      ]
+    });
   }
 
   if (text.includes("why") && (text.includes("drop") || text.includes("leak") || text.includes("conversion"))) {
     updateAnaState("leak", snapshot, focusStage, snapshot.northStarKpi);
-    return `If we look at the funnel, the main leak is ${drop.from} → ${drop.to}. Usually this is where intent is still high but follow-through gets harder because of timing friction, unanswered reminders, or scheduling delays. I’d treat this as an operations gap more than a demand problem.`;
+    return formatAnaResponse({
+      snapshot,
+      metricChange: `${drop.from} → ${drop.to} conversion is ${drop.conversion}% with ${drop.drop} patients lost`,
+      driver: `This stage is sensitive to reminder timing and scheduling friction; it is the largest leak in the current journey`,
+      actions: [
+        `Deploy a tighter reminder cadence at ${drop.from} stage`,
+        "Route non-confirmed patients to rapid rescheduling within 24 hours"
+      ]
+    });
   }
 
   if (text.includes("priority") || text.includes("first") || text.includes("where should")) {
     updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
-    return `If you want the highest-impact first move, focus on ${drop.from} → ${drop.to}. It’s your largest drop with ${drop.drop} patients lost. A focused reminder and same-day outreach sequence here will usually outperform broad campaigns.`;
+    return formatAnaResponse({
+      snapshot,
+      metricChange: `Largest impact gap is ${drop.from} → ${drop.to} with ${drop.drop} lost patients and ${drop.conversion}% conversion`,
+      driver: `This drop is materially larger than other funnel steps, so fixing it should move no-show and retention metrics fastest`,
+      actions: [
+        `Prioritize one intervention on ${drop.from} → ${drop.to} this week`,
+        `Track weekly movement on ${snapshot.northStarKpi} and no-show baseline`
+      ]
+    });
   }
 
   if (text.includes("30 days") || text.includes("next month") || text.includes("action plan")) {
     updateAnaState("plan_30_day", snapshot, focusStage, snapshot.northStarKpi);
-    return `Here’s a practical 30-day plan: Week 1, flag all ${persona.bucket} bookings as high-risk and add 2-step reminders. Week 2, escalate non-confirmed appointments to a call queue. Week 3, test one script variation by team. Week 4, review ${snapshot.northStarKpi} plus no-show trend and keep only what improved outcomes.`;
+    return formatAnaResponse({
+      snapshot,
+      metricChange: `${getPrimaryKpiChange(snapshot.selected)} and ${drop.from} → ${drop.to} still drops ${drop.drop} patients`,
+      driver: `High-risk lead-time bucket (${persona.bucket}) remains elevated at ${toPct(persona.bucketRate)}, indicating follow-through friction`,
+      actions: [
+        `Week 1-2: target ${persona.bucket} appointments with 2-step reminders + confirmation calls`,
+        `Week 3-4: A/B test one script and keep changes that improve ${snapshot.northStarKpi}`
+      ]
+    });
   }
 
   if (text.includes("scenario") || text.includes("current") || text.includes("status") || text.includes("how are we doing")) {
     updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
-    return `In the ${snapshot.timeframe} ${focusTeam} view, the target is ${snapshot.selected.goal}. Biggest funnel gap is ${drop.from} → ${drop.to} with ${drop.conversion}% conversion, and no-show baseline is ${snapshot.noShowRate}%. Quick pulse: solid momentum, but fixing that stage should unlock the clearest gains.`;
+    return formatAnaResponse({
+      snapshot,
+      metricChange: `${getPrimaryKpiChange(snapshot.selected)} while ${drop.from} → ${drop.to} conversion is ${drop.conversion}%`,
+      driver: `Performance is mixed: headline KPI trend is moving, but journey leakage and no-show baseline at ${snapshot.noShowRate}% still constrain outcomes`,
+      actions: [
+        `Stabilize ${drop.from} → ${drop.to} conversion with reminder + scheduling checks`,
+        "Review high-risk lead buckets weekly and rebalance outreach capacity"
+      ]
+    });
   }
 
   if (text.includes("strategy") || text.includes("strategies") || text.includes("plan") || text.includes("improve") || text.includes("help")) {
     updateAnaState("strategy", snapshot, focusStage, snapshot.northStarKpi);
-    return `I’d keep this simple and practical: first, defend the ${drop.from} → ${drop.to} stage with tighter reminder cadences; second, give long-lead bookings averaging ${snapshot.noShow.avg_lead_days.toFixed(1)} days extra confirmation touches; third, run a weekly checkpoint on ${snapshot.northStarKpi}. That gives fast learning without overwhelming the team.`;
+    return formatAnaResponse({
+      snapshot,
+      metricChange: `${drop.from} → ${drop.to} is the main leakage point (${drop.drop} patients), and no-show baseline is ${snapshot.noShowRate}%`,
+      driver: `Long booking lead times (avg ${snapshot.noShow.avg_lead_days.toFixed(1)} days) and incomplete reminder coverage weaken conversion reliability`,
+      actions: [
+        `Protect ${drop.from} → ${drop.to} with stricter reminder cadence`,
+        `Set a weekly operating review on ${snapshot.northStarKpi} and no-show trend`
+      ]
+    });
   }
 
   if (text.includes("no show") || text.includes("attendance")) {
     updateAnaState("no_show", snapshot, focusStage, "No-show rate");
-    return `Current no-show baseline is ${snapshot.noShowRate}%. The strongest signal is lead time: ${persona.bucket} has the highest risk at ${toPct(persona.bucketRate)}. Reminder coverage is ${toPct(persona.smsCoverage)}, so the most practical lever is increasing reminder intensity for long-wait bookings first.`;
+    return formatAnaResponse({
+      snapshot,
+      metricChange: `No-show baseline is ${snapshot.noShowRate}% and rises to ${toPct(persona.bucketRate)} for ${persona.bucket}`,
+      driver: `Lead-time friction is the clearest driver, amplified by SMS reminder coverage of ${toPct(persona.smsCoverage)}`,
+      actions: [
+        `Expand reminders for ${persona.bucket} appointments first`,
+        "Escalate non-confirmed patients to outbound confirmation calls"
+      ]
+    });
   }
 
   if (text.includes("satisfaction") || text.includes("experience") || text.includes("csat")) {
     updateAnaState("satisfaction", snapshot, focusStage, "Avg satisfaction");
-    return `On patient experience, satisfaction is being pulled by severity and anxiety signals in your model. The practical move is pairing clinical follow-up with expectation-setting and reassurance scripts for higher-acuity patients so experience improves alongside outcomes.`;
+    return formatAnaResponse({
+      snapshot,
+      metricChange: `Avg satisfaction is ${snapshot.satisfaction.avg_satisfaction.toFixed(1)}/100 with high-satisfaction ratio ${toPct(snapshot.satisfaction.high_satisfaction_ratio)}`,
+      driver: `Model signals show severity (${snapshot.satisfaction.correlation_with_satisfaction.Severity.toFixed(2)}) and anxiety (${snapshot.satisfaction.correlation_with_satisfaction.Anxiety.toFixed(2)}) as key negative correlates`,
+      actions: [
+        "Add reassurance scripts for high-acuity/high-anxiety cohorts",
+        "Pair follow-up outreach with expectation-setting before visits"
+      ]
+    });
   }
 
   if (text.includes("retention") || text.includes("growth") || text.includes("kpi")) {
     updateAnaState("kpi", snapshot, focusStage, snapshot.northStarKpi);
-    return `To improve retention and growth without overcomplicating things, fix the biggest conversion gap first at ${drop.from} → ${drop.to}, then track one leading KPI weekly. Right now your strongest KPI pulse is ${topKpis}.`;
+    return formatAnaResponse({
+      snapshot,
+      metricChange: `${topKpis}; largest retention drag remains ${drop.from} → ${drop.to} (${drop.drop} lost)`,
+      driver: `Growth and retention are being limited more by mid-funnel leakage than top-of-funnel volume`,
+      actions: [
+        `Fix ${drop.from} → ${drop.to} first with targeted confirmations`,
+        `Run weekly KPI review using ${snapshot.northStarKpi} plus no-show rate`
+      ]
+    });
   }
 
   return getContextualFallback(snapshot);
@@ -932,7 +1027,7 @@ function initAna() {
   if (!anaToggleEl || !anaPanelEl || !anaFormEl || !anaInputEl) return;
 
   addAnaMessage(
-    "Hi, I’m Ana 👋 I’m here to help you make sense of the business quickly — ask me what’s happening, why it might be happening, and what we should do next."
+    "Hi, I’m Ana 👋 I’m your data-first analytics partner. Ask for current status, trend shifts, anomalies, and recommended actions tied directly to dashboard metrics."
   );
 
   anaToggleEl.addEventListener("click", () => {
