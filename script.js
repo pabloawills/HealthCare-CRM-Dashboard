@@ -857,6 +857,25 @@ function getAnaReply(userText) {
     (text.includes("patient") || text.includes("people")) &&
     (text.includes("likely") || text.includes("risk") || text.includes("high risk")) &&
     (text.includes("no show") || text.includes("not show") || text.includes("miss appointment"));
+  const asksHealthCheck =
+    (text.includes("good") && text.includes("bad")) ||
+    text.includes("are we doing good") ||
+    text.includes("are we doing well");
+  const asksTopPriorities =
+    (text.includes("top") && text.includes("priorit")) ||
+    text.includes("3 priorities") ||
+    text.includes("three priorities");
+  const asksRevenueDriver =
+    text.includes("hurting revenue") ||
+    text.includes("revenue") ||
+    text.includes("billing");
+  const asksSimpleExplanation =
+    text.includes("explain that simply") ||
+    text.includes("in simple terms") ||
+    text.includes("simplify");
+  const asksConfidence =
+    text.includes("how confident") ||
+    text.includes("confidence");
 
   if (asksForThisTeam && anaState.lastIntent) {
     if (anaState.lastIntent === "priority") {
@@ -885,6 +904,35 @@ function getAnaReply(userText) {
       updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
       return `Because ${focusStage} is where intent meets friction: longer wait windows, weaker confirmations, and scheduling delays. That combination usually creates the largest avoidable leakage.`;
     }
+  }
+
+  if (asksSimpleExplanation && anaState.lastIntent) {
+    if (anaState.lastIntent === "priority" || anaState.lastIntent === "strategy") {
+      return `Simple version: we’re losing the most people at ${focusStage}. If we fix that one step first, the business should improve faster than spreading effort everywhere.`;
+    }
+    if (anaState.lastIntent === "status" || anaState.lastIntent === "leak") {
+      return `Simple version: your headline KPI is improving, but too many patients still drop between ${focusStage}. That bottleneck is the main blocker right now.`;
+    }
+  }
+
+  if (asksConfidence) {
+    updateAnaState("confidence", snapshot, focusStage, snapshot.northStarKpi);
+    return `Confidence is moderate. We have clear directional signals (largest leak at ${focusStage}, no-show baseline ${snapshot.noShowRate}%, and highest-risk lead bucket ${persona.bucket}), but I’d confirm with a 2-week intervention test before scaling.`;
+  }
+
+  if (asksTopPriorities) {
+    updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
+    return `Top 3 priorities now: 1) Fix ${focusStage} conversion leak (${drop.drop} lost). 2) Intensify reminders for ${persona.bucket} bookings (${toPct(persona.bucketRate)} risk). 3) Run a weekly review on ${snapshot.northStarKpi} and no-show trend to keep only actions that move outcomes.`;
+  }
+
+  if (asksHealthCheck) {
+    updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
+    return `Short answer: mixed, leaning positive. ${getPrimaryKpiChange(snapshot.selected)}, but ${focusStage} is still leaking ${drop.drop} patients and no-show baseline remains ${snapshot.noShowRate}%.`;
+  }
+
+  if (asksRevenueDriver) {
+    updateAnaState("revenue", snapshot, focusStage, "Avg billing per patient");
+    return `Primary revenue drag appears operational: leakage at ${focusStage} and elevated no-show risk (${snapshot.noShowRate}% baseline). Fewer patients progressing to attended/active care likely suppresses downstream billing more than top-of-funnel demand.`;
   }
 
   if (
