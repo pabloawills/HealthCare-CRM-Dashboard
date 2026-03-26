@@ -842,6 +842,7 @@ function getAnaReply(userText) {
   const text = normalizeText(userText);
   const snapshot = buildBusinessSnapshot();
   const drop = findLargestJourneyDrop(snapshot.selected.journey);
+  const focusTeam = formatTeamName(snapshot.team);
   const persona = getNoShowPersona(snapshot);
   const topKpis = getTopKpiSummary(snapshot.selected);
   const focusStage = `${drop.from} → ${drop.to}`;
@@ -892,7 +893,6 @@ function getAnaReply(userText) {
   }
 
   if (asksNoShowPatientType) {
-  if (asksNoShowPatientType) {
     updateAnaState("no_show_risk", snapshot, focusStage, "No-show rate");
     return formatAnaResponse({
       snapshot,
@@ -918,7 +918,13 @@ function getAnaReply(userText) {
     });
   }
 
-  if (text.includes("priority") || text.includes("first") || text.includes("where should")) {
+  if (
+    text.includes("priority") ||
+    text.includes("prioritize") ||
+    text.includes("first") ||
+    text.includes("where should") ||
+    text.includes("what next")
+  ) {
     updateAnaState("priority", snapshot, focusStage, snapshot.northStarKpi);
     return formatAnaResponse({
       snapshot,
@@ -944,7 +950,15 @@ function getAnaReply(userText) {
     });
   }
 
-  if (text.includes("scenario") || text.includes("current") || text.includes("status") || text.includes("how are we doing")) {
+  if (
+    text.includes("scenario") ||
+    text.includes("current") ||
+    text.includes("status") ||
+    text.includes("how are we doing") ||
+    text.includes("what s happening") ||
+    text.includes("whats happening") ||
+    text.includes("happening")
+  ) {
     updateAnaState("status", snapshot, focusStage, snapshot.northStarKpi);
     return formatAnaResponse({
       snapshot,
@@ -1009,6 +1023,7 @@ function getAnaReply(userText) {
     });
   }
 
+  updateAnaState("fallback", snapshot, focusStage, snapshot.northStarKpi);
   return getContextualFallback(snapshot);
 }
 
